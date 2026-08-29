@@ -1,0 +1,6 @@
+{
+  "name": "ETFC Stream",
+  "description": "High-concurrency live MMA title fight streaming ecosystem with ABR video player, real-time live chat with user mentions & moderation tools, secure authentication with role-based access control (RBAC), M-Pesa & Telebirr PPV ticketing, fighter meta-engine, and offline engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

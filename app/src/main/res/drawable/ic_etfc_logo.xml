@@ -1,0 +1,48 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="260dp"
+    android:height="100dp"
+    android:viewportWidth="260"
+    android:viewportHeight="100">
+
+    <!-- Background (Pure Jet Black) -->
+    <path
+        android:pathData="M0,0h260v100h-260z"
+        android:fillColor="#000000" />
+
+    <!-- ETFC Brand Connected Top Bar and Lettering in Official Electric Gold (#FAB818) -->
+    <!-- Letter E with slanted athletic cuts -->
+    <path
+        android:pathData="M24,18 L94,18 L91,32 L46,32 L43,44 L78,44 L75,58 L40,58 L37,70 L86,70 L83,84 L10,84 Z"
+        android:fillColor="#FAB818" />
+
+    <!-- Clenched Combat Fist inside E nook -->
+    <!-- Fist silhouette in Black / Cutout on Gold E -->
+    <path
+        android:pathData="M22,34 L28,34 L29,42 L24,45 L20,41 Z"
+        android:fillColor="#000000" />
+    <path
+        android:pathData="M23,35 L26,35 L26,38 L23,38 Z"
+        android:fillColor="#FAB818" />
+    <path
+        android:pathData="M27,35 L29,35 L29,39 L27,39 Z"
+        android:fillColor="#FAB818" />
+    <path
+        android:pathData="M24,40 L28,40 L28,43 L24,43 Z"
+        android:fillColor="#FAB818" />
+
+    <!-- Letter T with slant -->
+    <path
+        android:pathData="M88,18 L142,18 L139,32 L121,32 L110,84 L94,84 L105,32 L88,32 Z"
+        android:fillColor="#FAB818" />
+
+    <!-- Letter F with slant -->
+    <path
+        android:pathData="M136,18 L188,18 L185,32 L158,32 L155,44 L180,44 L177,58 L152,58 L146,84 L130,84 Z"
+        android:fillColor="#FAB818" />
+
+    <!-- Letter C with bold athletic cut -->
+    <path
+        android:pathData="M234,22 L246,34 L216,34 C208,34 202,40 199,50 C196,62 201,70 208,70 L238,70 L226,84 L202,84 C186,84 177,72 181,52 C186,30 202,18 222,18 L248,18 Z"
+        android:fillColor="#FAB818" />
+
+</vector>
