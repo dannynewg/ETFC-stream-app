@@ -69,12 +69,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.data.models.Bout
 import com.example.data.models.HeroSlide
 import com.example.data.models.HeroSlideType
@@ -633,20 +635,43 @@ fun MatchPromoPosterHeroCard(
                     )
                 )
         ) {
-            // Background subtle grid/octagon glow
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                EtfcGold.copy(alpha = 0.15f),
-                                Color.Transparent
-                            ),
-                            radius = 450f
+            // If custom poster image URL exists, render it with smooth dark gradient overlay
+            if (!slide.posterImageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = slide.posterImageUrl,
+                    contentDescription = slide.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.55f),
+                                    Color.Black.copy(alpha = 0.75f),
+                                    Color.Black.copy(alpha = 0.92f)
+                                )
+                            )
                         )
-                    )
-            )
+                )
+            } else {
+                // Background subtle grid/octagon glow fallback
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    EtfcGold.copy(alpha = 0.15f),
+                                    Color.Transparent
+                                ),
+                                radius = 450f
+                            )
+                        )
+                )
+            }
 
             Column(
                 modifier = Modifier

@@ -3,7 +3,12 @@ package com.example.data.repository
 import com.example.data.local.DownloadedFightEntity
 import com.example.data.local.EtfcDao
 import com.example.data.local.FavoriteFighterEntity
+import com.example.data.local.FighterProfileEntity
+import com.example.data.local.FighterStatsEntity
+import com.example.data.local.HeroSlideEntity
+import com.example.data.local.NewsArticleEntity
 import com.example.data.local.PpvPassEntity
+import com.example.data.local.PreviousVideoEntity
 import com.example.data.local.UserPredictionEntity
 import com.example.data.local.UserAccountEntity
 import com.example.data.local.ChatMessageEntity
@@ -33,9 +38,17 @@ import com.example.data.models.UserRole
 import com.example.data.models.VideoCategory
 import com.example.data.models.WeightClass
 import com.example.data.security.SecurityUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.UUID
 
 class EtfcRepository(private val dao: EtfcDao) {
@@ -46,6 +59,70 @@ class EtfcRepository(private val dao: EtfcDao) {
     val activePass: Flow<PpvPassEntity?> = dao.getActivePpvPass()
     val userPredictions: Flow<List<UserPredictionEntity>> = dao.getAllPredictions()
     val favoriteFighters: Flow<List<FavoriteFighterEntity>> = dao.getAllFavoriteFighters()
+
+    // Dynamic Content Flows (Populated from SQLite Room and Synced with GitHub Admin)
+    val dynamicHeroSlides: Flow<List<HeroSlide>> = dao.getAllHeroSlides().map { entities ->
+        if (entities.isEmpty()) heroSlides else entities.map { it.toModel() }
+    }
+
+    val dynamicPreviousVideos: Flow<List<PreviousFightVideo>> = dao.getAllPreviousVideos().map { entities ->
+        if (entities.isEmpty()) previousVideos else entities.map { it.toModel() }
+    }
+
+    val dynamicNewsArticles: Flow<List<NewsArticle>> = dao.getAllNewsArticles().map { entities ->
+        if (entities.isEmpty()) newsArticles else entities.map { it.toModel() }
+    }
+
+    val dynamicFighters: Flow<List<Fighter>> = dao.getAllFighterProfiles().map { profiles ->
+        if (profiles.isEmpty()) fighters else {
+            profiles.map { profile ->
+                val base = fighters.firstOrNull { it.id == profile.fighterId }
+                if (base != null) {
+                    base.copy(
+                        name = profile.name,
+                        nickname = profile.nickname,
+                        countryName = profile.countryName,
+                        flagEmoji = profile.flagEmoji,
+                        division = WeightClass.entries.firstOrNull { it.label == profile.division } ?: base.division,
+                        stance = profile.stance,
+                        reachInches = profile.reachInches,
+                        heightCm = profile.heightCm,
+                        isChampion = profile.isChampion,
+                        rank = profile.rank,
+                        bio = profile.bio,
+                        signatureMove = profile.signatureMove,
+                        primaryColorHex = profile.primaryColorHex,
+                        photoUrl = profile.photoUrl
+                    )
+                } else {
+                    Fighter(
+                        id = profile.fighterId,
+                        name = profile.name,
+                        nickname = profile.nickname,
+                        countryName = profile.countryName,
+                        flagEmoji = profile.flagEmoji,
+                        division = WeightClass.entries.firstOrNull { it.label == profile.division } ?: WeightClass.MIDDLEWEIGHT,
+                        wins = 5,
+                        losses = 0,
+                        draws = 0,
+                        kos = 3,
+                        submissions = 1,
+                        strikeAccuracyPercent = 65,
+                        takedownDefensePercent = 80,
+                        reachInches = profile.reachInches,
+                        heightCm = profile.heightCm,
+                        stance = profile.stance,
+                        isChampion = profile.isChampion,
+                        rank = profile.rank,
+                        bio = profile.bio,
+                        signatureMove = profile.signatureMove,
+                        primaryColorHex = profile.primaryColorHex,
+                        photoUrl = profile.photoUrl
+                    )
+                }
+            }
+        }
+    }
 
     // --- Fighter Meta-Engine Roster (ETFC 002: Adwa Fight Night) ---
     val fighters: List<Fighter> = listOf(
@@ -1083,6 +1160,9 @@ class EtfcRepository(private val dao: EtfcDao) {
         )
 
         dao.insertChatMessages(seedMessages)
+
+        // Seed Dynamic Content (Hero posters, YouTube videos, and news articles)
+        seedDynamicContentIfEmpty()
     }
 
     suspend fun registerUser(
@@ -1661,7 +1741,9 @@ class EtfcRepository(private val dao: EtfcDao) {
             likesCount = 9820,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/videoseries?list=PLeRATZC0Qfoo&autoplay=1&enablejsapi=1"
+            youtubeVideoId = "0a8G81bZ7X0",
+            thumbnailUrl = "https://img.youtube.com/vi/0a8G81bZ7X0/hqdefault.jpg",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/0a8G81bZ7X0?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_02",
@@ -1683,7 +1765,9 @@ class EtfcRepository(private val dao: EtfcDao) {
             likesCount = 5430,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/videoseries?list=PLeRATZC0Qfoo&autoplay=1&enablejsapi=1"
+            youtubeVideoId = "M7lc1UVf-VE",
+            thumbnailUrl = "https://img.youtube.com/vi/M7lc1UVf-VE/hqdefault.jpg",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/M7lc1UVf-VE?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_03",
@@ -1705,7 +1789,9 @@ class EtfcRepository(private val dao: EtfcDao) {
             likesCount = 7610,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/videoseries?list=PLeRATZC0Qfoo&autoplay=1&enablejsapi=1"
+            youtubeVideoId = "9bZkp7q19f0",
+            thumbnailUrl = "https://img.youtube.com/vi/9bZkp7q19f0/hqdefault.jpg",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/9bZkp7q19f0?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_04",
@@ -1727,7 +1813,9 @@ class EtfcRepository(private val dao: EtfcDao) {
             likesCount = 8340,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/videoseries?list=PLeRATZC0Qfoo&autoplay=1&enablejsapi=1"
+            youtubeVideoId = "kJQP7kiw5Fk",
+            thumbnailUrl = "https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/kJQP7kiw5Fk?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_05",
@@ -1749,7 +1837,9 @@ class EtfcRepository(private val dao: EtfcDao) {
             likesCount = 3980,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/videoseries?list=PLeRATZC0Qfoo&autoplay=1&enablejsapi=1"
+            youtubeVideoId = "fJ9rUzIMcZQ",
+            thumbnailUrl = "https://img.youtube.com/vi/fJ9rUzIMcZQ/hqdefault.jpg",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/fJ9rUzIMcZQ?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_06",
@@ -1771,7 +1861,9 @@ class EtfcRepository(private val dao: EtfcDao) {
             likesCount = 14200,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/videoseries?list=PLeRATZC0Qfoo&autoplay=1&enablejsapi=1"
+            youtubeVideoId = "kXYiU_JCYtU",
+            thumbnailUrl = "https://img.youtube.com/vi/kXYiU_JCYtU/hqdefault.jpg",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/kXYiU_JCYtU?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_07",
@@ -1793,7 +1885,9 @@ class EtfcRepository(private val dao: EtfcDao) {
             likesCount = 3110,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/videoseries?list=PLeRATZC0Qfoo&autoplay=1&enablejsapi=1"
+            youtubeVideoId = "C0DPdy98e4c",
+            thumbnailUrl = "https://img.youtube.com/vi/C0DPdy98e4c/hqdefault.jpg",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/C0DPdy98e4c?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_08",
@@ -1815,7 +1909,9 @@ class EtfcRepository(private val dao: EtfcDao) {
             likesCount = 2890,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/videoseries?list=PLeRATZC0Qfoo&autoplay=1&enablejsapi=1"
+            youtubeVideoId = "RgKAFK5djSk",
+            thumbnailUrl = "https://img.youtube.com/vi/RgKAFK5djSk/hqdefault.jpg",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/RgKAFK5djSk?autoplay=1&enablejsapi=1"
         )
     )
 
@@ -1932,6 +2028,584 @@ class EtfcRepository(private val dao: EtfcDao) {
             tags = listOf("Fight Recap", "Adwa Museum", "Telemetry", "MMA"),
             relatedFighterNames = listOf("Sedo", "Desalegn")
         )
+    )
+
+    // ==========================================
+    // DYNAMIC PERSISTENCE, ADMIN CRUD & GITHUB SYNC
+    // ==========================================
+
+    suspend fun seedDynamicContentIfEmpty() {
+        // Seed Hero Slides
+        val initialSlides = heroSlides.mapIndexed { index, slide ->
+            slide.toEntity(order = index)
+        }
+        dao.insertHeroSlides(initialSlides)
+
+        // Seed Previous Videos
+        val initialVideos = previousVideos.mapIndexed { index, video ->
+            video.toEntity(order = index)
+        }
+        dao.insertVideos(initialVideos)
+
+        // Seed News Articles
+        val initialNews = newsArticles.map { it.toEntity() }
+        dao.insertNewsArticles(initialNews)
+    }
+
+    suspend fun saveHeroSlide(slide: HeroSlide, isPinned: Boolean = false) {
+        dao.insertHeroSlide(slide.toEntity(isPinned = isPinned))
+    }
+
+    suspend fun deleteHeroSlide(slideId: String) {
+        dao.deleteHeroSlide(slideId)
+    }
+
+    suspend fun savePreviousVideo(video: PreviousFightVideo, displayOrder: Int = 0) {
+        dao.insertVideo(video.toEntity(order = displayOrder))
+    }
+
+    suspend fun deletePreviousVideo(videoId: String) {
+        dao.deleteVideo(videoId)
+    }
+
+    suspend fun saveNewsArticle(article: NewsArticle) {
+        dao.insertNewsArticle(article.toEntity())
+    }
+
+    suspend fun deleteNewsArticle(articleId: String) {
+        dao.deleteNewsArticle(articleId)
+    }
+
+    suspend fun updateFighterProfile(
+        fighterId: String,
+        name: String,
+        nickname: String,
+        country: String,
+        flag: String,
+        bio: String,
+        stance: String,
+        signatureMove: String,
+        reachInches: Int,
+        heightCm: Int,
+        photoUrl: String?
+    ) {
+        val existing = dao.getFighterProfileById(fighterId)
+        if (existing != null) {
+            val updated = existing.copy(
+                name = name,
+                nickname = nickname,
+                countryName = country,
+                flagEmoji = flag,
+                bio = bio,
+                stance = stance,
+                signatureMove = signatureMove,
+                reachInches = reachInches,
+                heightCm = heightCm,
+                photoUrl = photoUrl
+            )
+            dao.insertFighterProfile(updated)
+        } else {
+            val baseFighter = fighters.firstOrNull { it.id == fighterId }
+            val newProfile = FighterProfileEntity(
+                fighterId = fighterId,
+                name = name,
+                nickname = nickname,
+                countryName = country,
+                flagEmoji = flag,
+                division = baseFighter?.division?.label ?: "Middleweight",
+                stance = stance,
+                reachInches = reachInches,
+                heightCm = heightCm,
+                isChampion = baseFighter?.isChampion ?: false,
+                rank = baseFighter?.rank ?: 1,
+                bio = bio,
+                signatureMove = signatureMove,
+                primaryColorHex = baseFighter?.primaryColorHex ?: 0xFFEF4444,
+                photoUrl = photoUrl
+            )
+            dao.insertFighterProfile(newProfile)
+        }
+    }
+
+    // --- JSON Serialization for GitHub Repository Sync ---
+
+    fun exportToGitHubJson(): String {
+        val root = JSONObject()
+        root.put("version", 1)
+        root.put("schema", "ETFC_CONTENT_SYNC_V1")
+        root.put("exportedAt", System.currentTimeMillis())
+
+        // Hero Slides Array
+        val slidesArray = JSONArray()
+        heroSlides.forEach { slide ->
+            val obj = JSONObject()
+            obj.put("id", slide.id)
+            obj.put("type", slide.type.name)
+            obj.put("tag", slide.tag)
+            obj.put("title", slide.title)
+            obj.put("subtitle", slide.subtitle)
+            obj.put("eventDateOrCountdown", slide.eventDateOrCountdown)
+            obj.put("venueOrLocation", slide.venueOrLocation)
+            obj.put("primaryCtaText", slide.primaryCtaText)
+            obj.put("secondaryCtaText", slide.secondaryCtaText ?: "")
+            obj.put("badgeColorHex", slide.badgeColorHex)
+            obj.put("discountText", slide.discountText ?: "")
+            obj.put("redFighterName", slide.redFighterName ?: "")
+            obj.put("blueFighterName", slide.blueFighterName ?: "")
+            obj.put("weightClassText", slide.weightClassText ?: "")
+            obj.put("matchCategoryBadge", slide.matchCategoryBadge ?: "")
+            obj.put("eventEdition", slide.eventEdition)
+            obj.put("redFlag", slide.redFlag)
+            obj.put("blueFlag", slide.blueFlag)
+            obj.put("hasChampionshipBelt", slide.hasChampionshipBelt)
+            obj.put("targetTab", slide.targetTab)
+            obj.put("ppvTierId", slide.ppvTierId ?: "")
+            obj.put("posterImageUrl", slide.posterImageUrl ?: "")
+            slidesArray.put(obj)
+        }
+        root.put("heroSlides", slidesArray)
+
+        // Previous Videos Array
+        val videosArray = JSONArray()
+        previousVideos.forEach { video ->
+            val obj = JSONObject()
+            obj.put("id", video.id)
+            obj.put("title", video.title)
+            obj.put("subtitle", video.subtitle)
+            obj.put("eventName", video.eventName)
+            obj.put("category", video.category.name)
+            obj.put("durationText", video.durationText)
+            obj.put("durationSeconds", video.durationSeconds)
+            obj.put("viewsCountStr", video.viewsCountStr)
+            obj.put("publishedTimeAgo", video.publishedTimeAgo)
+            obj.put("fighterRedName", video.fighterRedName)
+            obj.put("fighterBlueName", video.fighterBlueName)
+            obj.put("resultMethod", video.resultMethod)
+            obj.put("finishRoundText", video.finishRoundText)
+            obj.put("fileSizeMb", video.fileSizeMb)
+            obj.put("resolutionLabel", video.resolutionLabel)
+            obj.put("isTitleFight", video.isTitleFight)
+            obj.put("contentTier", video.contentTier.name)
+            obj.put("likesCount", video.likesCount)
+            obj.put("youtubePlaylistUrl", video.youtubePlaylistUrl)
+            obj.put("youtubePlaylistId", video.youtubePlaylistId)
+            obj.put("youtubeVideoId", video.youtubeVideoId)
+            obj.put("thumbnailUrl", video.thumbnailUrl)
+            obj.put("youtubeEmbedUrl", video.youtubeEmbedUrl)
+            videosArray.put(obj)
+        }
+        root.put("previousVideos", videosArray)
+
+        // News Announcements Array
+        val newsArray = JSONArray()
+        newsArticles.forEach { article ->
+            val obj = JSONObject()
+            obj.put("id", article.id)
+            obj.put("title", article.title)
+            obj.put("summary", article.summary)
+            obj.put("fullContent", article.fullContent)
+            obj.put("category", article.category.name)
+            obj.put("author", article.author)
+            obj.put("authorRole", article.authorRole)
+            obj.put("publishedDate", article.publishedDate)
+            obj.put("readTimeMinutes", article.readTimeMinutes)
+            obj.put("isFeatured", article.isFeatured)
+            obj.put("tags", article.tags.joinToString(","))
+            obj.put("relatedFighterNames", article.relatedFighterNames.joinToString(","))
+            obj.put("imageUrl", article.imageUrl ?: "")
+            newsArray.put(obj)
+        }
+        root.put("newsArticles", newsArray)
+
+        // Fighters Profile Array
+        val fightersArray = JSONArray()
+        fighters.forEach { fighter ->
+            val obj = JSONObject()
+            obj.put("fighterId", fighter.id)
+            obj.put("name", fighter.name)
+            obj.put("nickname", fighter.nickname)
+            obj.put("countryName", fighter.countryName)
+            obj.put("flagEmoji", fighter.flagEmoji)
+            obj.put("division", fighter.division.label)
+            obj.put("stance", fighter.stance)
+            obj.put("reachInches", fighter.reachInches)
+            obj.put("heightCm", fighter.heightCm)
+            obj.put("isChampion", fighter.isChampion)
+            obj.put("rank", fighter.rank)
+            obj.put("bio", fighter.bio)
+            obj.put("signatureMove", fighter.signatureMove)
+            obj.put("primaryColorHex", fighter.primaryColorHex)
+            obj.put("photoUrl", fighter.photoUrl ?: "")
+            fightersArray.put(obj)
+        }
+        root.put("fighters", fightersArray)
+
+        return root.toString(2)
+    }
+
+    suspend fun syncFromGitHubJson(jsonString: String): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val root = JSONObject(jsonString)
+            var totalItemsSynced = 0
+
+            // 1. Sync Hero Slides
+            if (root.has("heroSlides")) {
+                val slidesArray = root.getJSONArray("heroSlides")
+                val slideEntities = mutableListOf<HeroSlideEntity>()
+                for (i in 0 until slidesArray.length()) {
+                    val obj = slidesArray.getJSONObject(i)
+                    slideEntities.add(
+                        HeroSlideEntity(
+                            id = obj.optString("id", "slide_$i"),
+                            type = obj.optString("type", HeroSlideType.MATCH_PROMO_POSTER.name),
+                            tag = obj.optString("tag", "🔥 FEATURED"),
+                            title = obj.optString("title", "ETFC EVENT"),
+                            subtitle = obj.optString("subtitle", ""),
+                            eventDateOrCountdown = obj.optString("eventDateOrCountdown", "COMING SOON"),
+                            venueOrLocation = obj.optString("venueOrLocation", "Adwa 00 Museum"),
+                            primaryCtaText = obj.optString("primaryCtaText", "VIEW MATCH"),
+                            secondaryCtaText = obj.optString("secondaryCtaText").takeIf { it.isNotBlank() },
+                            badgeColorHex = obj.optLong("badgeColorHex", 0xFFFAB818),
+                            discountText = obj.optString("discountText").takeIf { it.isNotBlank() },
+                            redFighterName = obj.optString("redFighterName").takeIf { it.isNotBlank() },
+                            blueFighterName = obj.optString("blueFighterName").takeIf { it.isNotBlank() },
+                            weightClassText = obj.optString("weightClassText").takeIf { it.isNotBlank() },
+                            matchCategoryBadge = obj.optString("matchCategoryBadge").takeIf { it.isNotBlank() },
+                            eventEdition = obj.optString("eventEdition", "ETFC 002"),
+                            redFlag = obj.optString("redFlag", "🇪🇹"),
+                            blueFlag = obj.optString("blueFlag", "🇪🇹"),
+                            hasChampionshipBelt = obj.optBoolean("hasChampionshipBelt", false),
+                            targetTab = obj.optString("targetTab", "FIGHT_CARD"),
+                            ppvTierId = obj.optString("ppvTierId").takeIf { it.isNotBlank() },
+                            posterImageUrl = obj.optString("posterImageUrl").takeIf { it.isNotBlank() },
+                            displayOrder = i,
+                            isPinned = obj.optBoolean("isPinned", false)
+                        )
+                    )
+                }
+                if (slideEntities.isNotEmpty()) {
+                    dao.clearAllHeroSlides()
+                    dao.insertHeroSlides(slideEntities)
+                    totalItemsSynced += slideEntities.size
+                }
+            }
+
+            // 2. Sync Previous Fight Videos
+            if (root.has("previousVideos")) {
+                val videosArray = root.getJSONArray("previousVideos")
+                val videoEntities = mutableListOf<PreviousVideoEntity>()
+                for (i in 0 until videosArray.length()) {
+                    val obj = videosArray.getJSONObject(i)
+                    val vId = obj.optString("youtubeVideoId", "0a8G81bZ7X0")
+                    videoEntities.add(
+                        PreviousVideoEntity(
+                            id = obj.optString("id", "yt_vod_$i"),
+                            title = obj.optString("title", "ETFC Match Replay"),
+                            subtitle = obj.optString("subtitle", "Adwa Fight Night Archive"),
+                            eventName = obj.optString("eventName", "ETFC 002: Adwa Fight Night"),
+                            category = obj.optString("category", VideoCategory.FULL_REPLAY.name),
+                            durationText = obj.optString("durationText", "15:00"),
+                            durationSeconds = obj.optInt("durationSeconds", 900),
+                            viewsCountStr = obj.optString("viewsCountStr", "100K views"),
+                            publishedTimeAgo = obj.optString("publishedTimeAgo", "ETFC Archive"),
+                            fighterRedName = obj.optString("fighterRedName", "Red Corner"),
+                            fighterBlueName = obj.optString("fighterBlueName", "Blue Corner"),
+                            resultMethod = obj.optString("resultMethod", "Decision"),
+                            finishRoundText = obj.optString("finishRoundText", "Full Bout"),
+                            fileSizeMb = obj.optInt("fileSizeMb", 180),
+                            resolutionLabel = obj.optString("resolutionLabel", "1080p HD"),
+                            isTitleFight = obj.optBoolean("isTitleFight", false),
+                            contentTier = obj.optString("contentTier", ContentTier.FREE_PRELIMS.name),
+                            likesCount = obj.optInt("likesCount", 1000),
+                            videoUrl = obj.optString("videoUrl", ""),
+                            youtubePlaylistUrl = obj.optString("youtubePlaylistUrl", youtubePlaylistUrl),
+                            youtubePlaylistId = obj.optString("youtubePlaylistId", youtubePlaylistId),
+                            youtubeVideoId = vId,
+                            thumbnailUrl = obj.optString("thumbnailUrl", "https://img.youtube.com/vi/$vId/hqdefault.jpg"),
+                            youtubeEmbedUrl = obj.optString("youtubeEmbedUrl", "https://www.youtube-nocookie.com/embed/$vId?autoplay=1&enablejsapi=1"),
+                            displayOrder = i
+                        )
+                    )
+                }
+                if (videoEntities.isNotEmpty()) {
+                    dao.clearAllVideos()
+                    dao.insertVideos(videoEntities)
+                    totalItemsSynced += videoEntities.size
+                }
+            }
+
+            // 3. Sync News & Announcements
+            if (root.has("newsArticles")) {
+                val newsArray = root.getJSONArray("newsArticles")
+                val newsEntities = mutableListOf<NewsArticleEntity>()
+                for (i in 0 until newsArray.length()) {
+                    val obj = newsArray.getJSONObject(i)
+                    newsEntities.add(
+                        NewsArticleEntity(
+                            id = obj.optString("id", "news_$i"),
+                            title = obj.optString("title", "ETFC Update"),
+                            summary = obj.optString("summary", ""),
+                            fullContent = obj.optString("fullContent", ""),
+                            category = obj.optString("category", NewsCategory.PRESS_RELEASE.name),
+                            author = obj.optString("author", "ETFC Desk"),
+                            authorRole = obj.optString("authorRole", "Official Media"),
+                            publishedDate = obj.optString("publishedDate", "Recent"),
+                            readTimeMinutes = obj.optInt("readTimeMinutes", 3),
+                            isFeatured = obj.optBoolean("isFeatured", false),
+                            tags = obj.optString("tags", ""),
+                            relatedFighterNames = obj.optString("relatedFighterNames", ""),
+                            imageUrl = obj.optString("imageUrl").takeIf { it.isNotBlank() },
+                            timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                        )
+                    )
+                }
+                if (newsEntities.isNotEmpty()) {
+                    dao.clearAllNewsArticles()
+                    dao.insertNewsArticles(newsEntities)
+                    totalItemsSynced += newsEntities.size
+                }
+            }
+
+            // 4. Sync Fighter Profiles & Photos
+            if (root.has("fighters")) {
+                val fightersArray = root.getJSONArray("fighters")
+                val profileEntities = mutableListOf<FighterProfileEntity>()
+                for (i in 0 until fightersArray.length()) {
+                    val obj = fightersArray.getJSONObject(i)
+                    val fId = obj.optString("fighterId", "f_$i")
+                    val baseFighter = fighters.firstOrNull { it.id == fId }
+                    profileEntities.add(
+                        FighterProfileEntity(
+                            fighterId = fId,
+                            name = obj.optString("name", baseFighter?.name ?: "Fighter"),
+                            nickname = obj.optString("nickname", baseFighter?.nickname ?: ""),
+                            countryName = obj.optString("countryName", baseFighter?.countryName ?: "Ethiopia"),
+                            flagEmoji = obj.optString("flagEmoji", baseFighter?.flagEmoji ?: "🇪🇹"),
+                            division = obj.optString("division", baseFighter?.division?.label ?: "Middleweight"),
+                            stance = obj.optString("stance", baseFighter?.stance ?: "Orthodox"),
+                            reachInches = obj.optInt("reachInches", baseFighter?.reachInches ?: 72),
+                            heightCm = obj.optInt("heightCm", baseFighter?.heightCm ?: 180),
+                            isChampion = obj.optBoolean("isChampion", baseFighter?.isChampion ?: false),
+                            rank = obj.optInt("rank", baseFighter?.rank ?: 1),
+                            bio = obj.optString("bio", baseFighter?.bio ?: ""),
+                            signatureMove = obj.optString("signatureMove", baseFighter?.signatureMove ?: ""),
+                            primaryColorHex = obj.optLong("primaryColorHex", baseFighter?.primaryColorHex ?: 0xFFEF4444),
+                            photoUrl = obj.optString("photoUrl").takeIf { it.isNotBlank() }
+                        )
+                    )
+                }
+                if (profileEntities.isNotEmpty()) {
+                    dao.insertFighterProfiles(profileEntities)
+                    totalItemsSynced += profileEntities.size
+                }
+            }
+
+            Result.success(totalItemsSynced)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchAndSyncFromRemoteUrl(urlString: String): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val url = URL(urlString)
+            val connection = (url.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 10000
+                readTimeout = 10000
+                requestMethod = "GET"
+                setRequestProperty("Accept", "application/json")
+            }
+            if (connection.responseCode in 200..299) {
+                val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                val jsonString = reader.readText()
+                reader.close()
+                syncFromGitHubJson(jsonString)
+            } else {
+                Result.failure(Exception("HTTP error code: ${connection.responseCode}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun resetDynamicDataToDefault() {
+        dao.clearAllHeroSlides()
+        dao.clearAllVideos()
+        dao.clearAllNewsArticles()
+        seedDynamicContentIfEmpty()
+    }
+}
+
+// Extension functions for entity mapping
+fun HeroSlide.toEntity(order: Int = 0, isPinned: Boolean = false): HeroSlideEntity {
+    return HeroSlideEntity(
+        id = this.id,
+        type = this.type.name,
+        tag = this.tag,
+        title = this.title,
+        subtitle = this.subtitle,
+        eventDateOrCountdown = this.eventDateOrCountdown,
+        venueOrLocation = this.venueOrLocation,
+        primaryCtaText = this.primaryCtaText,
+        secondaryCtaText = this.secondaryCtaText,
+        badgeColorHex = this.badgeColorHex,
+        discountText = this.discountText,
+        redFighterName = this.redFighterName,
+        blueFighterName = this.blueFighterName,
+        weightClassText = this.weightClassText,
+        matchCategoryBadge = this.matchCategoryBadge,
+        eventEdition = this.eventEdition,
+        redFlag = this.redFlag,
+        blueFlag = this.blueFlag,
+        hasChampionshipBelt = this.hasChampionshipBelt,
+        targetTab = this.targetTab,
+        ppvTierId = this.ppvTierId,
+        posterImageUrl = this.posterImageUrl,
+        displayOrder = order,
+        isPinned = isPinned
+    )
+}
+
+fun HeroSlideEntity.toModel(): HeroSlide {
+    val slideType = try {
+        HeroSlideType.valueOf(this.type)
+    } catch (e: Exception) {
+        HeroSlideType.MATCH_PROMO_POSTER
+    }
+    return HeroSlide(
+        id = this.id,
+        type = slideType,
+        tag = this.tag,
+        title = this.title,
+        subtitle = this.subtitle,
+        eventDateOrCountdown = this.eventDateOrCountdown,
+        venueOrLocation = this.venueOrLocation,
+        primaryCtaText = this.primaryCtaText,
+        secondaryCtaText = this.secondaryCtaText,
+        badgeColorHex = this.badgeColorHex,
+        discountText = this.discountText,
+        redFighterName = this.redFighterName,
+        blueFighterName = this.blueFighterName,
+        weightClassText = this.weightClassText,
+        matchCategoryBadge = this.matchCategoryBadge,
+        eventEdition = this.eventEdition,
+        redFlag = this.redFlag,
+        blueFlag = this.blueFlag,
+        hasChampionshipBelt = this.hasChampionshipBelt,
+        targetTab = this.targetTab,
+        ppvTierId = this.ppvTierId,
+        posterImageUrl = this.posterImageUrl
+    )
+}
+
+fun PreviousFightVideo.toEntity(order: Int = 0): PreviousVideoEntity {
+    return PreviousVideoEntity(
+        id = this.id,
+        title = this.title,
+        subtitle = this.subtitle,
+        eventName = this.eventName,
+        category = this.category.name,
+        durationText = this.durationText,
+        durationSeconds = this.durationSeconds,
+        viewsCountStr = this.viewsCountStr,
+        publishedTimeAgo = this.publishedTimeAgo,
+        fighterRedName = this.fighterRedName,
+        fighterBlueName = this.fighterBlueName,
+        resultMethod = this.resultMethod,
+        finishRoundText = this.finishRoundText,
+        fileSizeMb = this.fileSizeMb,
+        resolutionLabel = this.resolutionLabel,
+        isTitleFight = this.isTitleFight,
+        contentTier = this.contentTier.name,
+        likesCount = this.likesCount,
+        videoUrl = this.videoUrl,
+        youtubePlaylistUrl = this.youtubePlaylistUrl,
+        youtubePlaylistId = this.youtubePlaylistId,
+        youtubeVideoId = this.youtubeVideoId,
+        thumbnailUrl = this.thumbnailUrl,
+        youtubeEmbedUrl = this.youtubeEmbedUrl,
+        displayOrder = order
+    )
+}
+
+fun PreviousVideoEntity.toModel(): PreviousFightVideo {
+    val cat = try {
+        VideoCategory.valueOf(this.category)
+    } catch (e: Exception) {
+        VideoCategory.FULL_REPLAY
+    }
+    val tier = try {
+        ContentTier.valueOf(this.contentTier)
+    } catch (e: Exception) {
+        ContentTier.FREE_PRELIMS
+    }
+    return PreviousFightVideo(
+        id = this.id,
+        title = this.title,
+        subtitle = this.subtitle,
+        eventName = this.eventName,
+        category = cat,
+        durationText = this.durationText,
+        durationSeconds = this.durationSeconds,
+        viewsCountStr = this.viewsCountStr,
+        publishedTimeAgo = this.publishedTimeAgo,
+        fighterRedName = this.fighterRedName,
+        fighterBlueName = this.fighterBlueName,
+        resultMethod = this.resultMethod,
+        finishRoundText = this.finishRoundText,
+        fileSizeMb = this.fileSizeMb,
+        resolutionLabel = this.resolutionLabel,
+        isTitleFight = this.isTitleFight,
+        contentTier = tier,
+        likesCount = this.likesCount,
+        videoUrl = this.videoUrl,
+        youtubePlaylistUrl = this.youtubePlaylistUrl,
+        youtubePlaylistId = this.youtubePlaylistId,
+        youtubeVideoId = this.youtubeVideoId,
+        thumbnailUrl = this.thumbnailUrl,
+        youtubeEmbedUrl = this.youtubeEmbedUrl
+    )
+}
+
+fun NewsArticle.toEntity(): NewsArticleEntity {
+    return NewsArticleEntity(
+        id = this.id,
+        title = this.title,
+        summary = this.summary,
+        fullContent = this.fullContent,
+        category = this.category.name,
+        author = this.author,
+        authorRole = this.authorRole,
+        publishedDate = this.publishedDate,
+        readTimeMinutes = this.readTimeMinutes,
+        isFeatured = this.isFeatured,
+        tags = this.tags.joinToString(","),
+        relatedFighterNames = this.relatedFighterNames.joinToString(","),
+        imageUrl = this.imageUrl,
+        timestamp = System.currentTimeMillis()
+    )
+}
+
+fun NewsArticleEntity.toModel(): NewsArticle {
+    val cat = try {
+        NewsCategory.valueOf(this.category)
+    } catch (e: Exception) {
+        NewsCategory.PRESS_RELEASE
+    }
+    return NewsArticle(
+        id = this.id,
+        title = this.title,
+        summary = this.summary,
+        fullContent = this.fullContent,
+        category = cat,
+        author = this.author,
+        authorRole = this.authorRole,
+        publishedDate = this.publishedDate,
+        readTimeMinutes = this.readTimeMinutes,
+        isFeatured = this.isFeatured,
+        tags = if (this.tags.isBlank()) emptyList() else this.tags.split(","),
+        relatedFighterNames = if (this.relatedFighterNames.isBlank()) emptyList() else this.relatedFighterNames.split(","),
+        imageUrl = this.imageUrl
     )
 }
 

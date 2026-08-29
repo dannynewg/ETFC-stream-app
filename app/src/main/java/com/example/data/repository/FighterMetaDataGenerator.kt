@@ -27,7 +27,8 @@ object FighterMetaDataGenerator {
                 primaryColorHex = f.primaryColorHex,
                 hairStyle = f.hairStyle.name,
                 discipline = f.discipline.label,
-                lastUpdatedTimestamp = System.currentTimeMillis()
+                lastUpdatedTimestamp = System.currentTimeMillis(),
+                photoUrl = f.photoUrl
             )
         }
     }

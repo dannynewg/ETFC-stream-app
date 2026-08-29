@@ -138,7 +138,17 @@ data class EtfcUiState(
     val preferredMobileWallet: PaymentProvider = PaymentProvider.TELEBIRR,
     val chatProfanityFilterEnabled: Boolean = true,
     val cachedStorageFreedMb: Int = 0,
-    val settingsSnackbarMessage: String? = null
+    val settingsSnackbarMessage: String? = null,
+
+    // Dynamic Sync & Admin State
+    val dynamicHeroSlides: List<HeroSlide> = emptyList(),
+    val dynamicPreviousVideos: List<PreviousFightVideo> = emptyList(),
+    val dynamicNewsArticles: List<NewsArticle> = emptyList(),
+    val dynamicFighters: List<Fighter> = emptyList(),
+    val isSyncingGitHub: Boolean = false,
+    val githubSyncStatusMessage: String? = null,
+    val isAdminPortalOpen: Boolean = false,
+    val adminSelectedTab: Int = 0
 )
 
 class EtfcViewModel(application: Application) : AndroidViewModel(application) {
@@ -155,6 +165,11 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
     val userPredictions: StateFlow<List<UserPredictionEntity>>
     val favoriteFighters: StateFlow<List<FavoriteFighterEntity>>
     val fighterProfiles: StateFlow<List<com.example.data.local.FighterProfileEntity>>
+
+    val dynamicHeroSlides: StateFlow<List<HeroSlide>>
+    val dynamicPreviousVideos: StateFlow<List<PreviousFightVideo>>
+    val dynamicNewsArticles: StateFlow<List<NewsArticle>>
+    val dynamicFighters: StateFlow<List<Fighter>>
 
     val fighters: List<Fighter>
     val bouts: List<Bout>
@@ -195,18 +210,56 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
         fighterProfiles = repository.getAllFighterProfiles()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+        dynamicHeroSlides = repository.dynamicHeroSlides
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), repository.heroSlides)
+
+        dynamicPreviousVideos = repository.dynamicPreviousVideos
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), repository.previousVideos)
+
+        dynamicNewsArticles = repository.dynamicNewsArticles
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), repository.newsArticles)
+
+        dynamicFighters = repository.dynamicFighters
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), repository.fighters)
+
         _uiState.value = _uiState.value.copy(
             selectedBout = bouts.firstOrNull(),
             selectedCdnNode = cdnNodes.firstOrNull(),
             fanMessages = repository.initialChatMessages,
             taleFighterRed = bouts.firstOrNull()?.fighterRed,
-            taleFighterBlue = bouts.firstOrNull()?.fighterBlue
+            taleFighterBlue = bouts.firstOrNull()?.fighterBlue,
+            dynamicHeroSlides = repository.heroSlides,
+            dynamicPreviousVideos = repository.previousVideos,
+            dynamicNewsArticles = repository.newsArticles,
+            dynamicFighters = repository.fighters
         )
 
-        // Seed Meta-Engine, Users, and Chat in Room
+        // Seed Meta-Engine, Users, Chat, and Dynamic Content in Room
         viewModelScope.launch {
             repository.seedFighterMetaEngineIfNeeded()
             repository.seedDefaultUsersAndChatIfNeeded(bouts.firstOrNull()?.id ?: "bout_sedo_jhonny")
+        }
+
+        // Observe Dynamic Content Flows to update UI state
+        viewModelScope.launch {
+            repository.dynamicHeroSlides.collectLatest { slides ->
+                _uiState.value = _uiState.value.copy(dynamicHeroSlides = slides)
+            }
+        }
+        viewModelScope.launch {
+            repository.dynamicPreviousVideos.collectLatest { videos ->
+                _uiState.value = _uiState.value.copy(dynamicPreviousVideos = videos)
+            }
+        }
+        viewModelScope.launch {
+            repository.dynamicNewsArticles.collectLatest { articles ->
+                _uiState.value = _uiState.value.copy(dynamicNewsArticles = articles)
+            }
+        }
+        viewModelScope.launch {
+            repository.dynamicFighters.collectLatest { fighterList ->
+                _uiState.value = _uiState.value.copy(dynamicFighters = fighterList)
+            }
         }
 
         // Observe All Users from Room
@@ -1130,5 +1183,169 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissSettingsSnackbar() {
         _uiState.value = _uiState.value.copy(settingsSnackbarMessage = null)
+    }
+
+    // ==========================================
+    // ADMIN ACTIONS & GITHUB CONTENT SYNC
+    // ==========================================
+
+    fun openAdminPortal() {
+        _uiState.value = _uiState.value.copy(isAdminPortalOpen = true)
+    }
+
+    fun closeAdminPortal() {
+        _uiState.value = _uiState.value.copy(isAdminPortalOpen = false)
+    }
+
+    fun setAdminTab(tabIndex: Int) {
+        _uiState.value = _uiState.value.copy(adminSelectedTab = tabIndex)
+    }
+
+    fun postMatchPromoPoster(slide: HeroSlide, isPinned: Boolean = false) {
+        viewModelScope.launch {
+            repository.saveHeroSlide(slide, isPinned)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "✅ Promo Poster \"${slide.title}\" published to live slider!"
+            )
+        }
+    }
+
+    fun deleteMatchPromoPoster(slideId: String) {
+        viewModelScope.launch {
+            repository.deleteHeroSlide(slideId)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "🗑️ Promo Poster removed from live slider."
+            )
+        }
+    }
+
+    fun addPreviousFightVideo(video: PreviousFightVideo) {
+        viewModelScope.launch {
+            repository.savePreviousVideo(video)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "✅ Video \"${video.title}\" added to fight archive!"
+            )
+        }
+    }
+
+    fun deletePreviousFightVideo(videoId: String) {
+        viewModelScope.launch {
+            repository.deletePreviousVideo(videoId)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "🗑️ Video removed from archive."
+            )
+        }
+    }
+
+    fun postNewsAnnouncement(article: NewsArticle) {
+        viewModelScope.launch {
+            repository.saveNewsArticle(article)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "✅ Announcement \"${article.title}\" published!"
+            )
+        }
+    }
+
+    fun deleteNewsAnnouncement(articleId: String) {
+        viewModelScope.launch {
+            repository.deleteNewsArticle(articleId)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "🗑️ Announcement removed."
+            )
+        }
+    }
+
+    fun updateFighterProfile(
+        fighterId: String,
+        name: String,
+        nickname: String,
+        country: String,
+        flag: String,
+        bio: String,
+        stance: String,
+        signatureMove: String,
+        reachInches: Int,
+        heightCm: Int,
+        photoUrl: String?
+    ) {
+        viewModelScope.launch {
+            repository.updateFighterProfile(
+                fighterId = fighterId,
+                name = name,
+                nickname = nickname,
+                country = country,
+                flag = flag,
+                bio = bio,
+                stance = stance,
+                signatureMove = signatureMove,
+                reachInches = reachInches,
+                heightCm = heightCm,
+                photoUrl = photoUrl
+            )
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "✅ Fighter profile & stats updated for $name!"
+            )
+        }
+    }
+
+    fun syncFromGitHubJson(jsonString: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSyncingGitHub = true, githubSyncStatusMessage = "Syncing data from GitHub JSON payload...")
+            val result = repository.syncFromGitHubJson(jsonString)
+            if (result.isSuccess) {
+                val count = result.getOrDefault(0)
+                _uiState.value = _uiState.value.copy(
+                    isSyncingGitHub = false,
+                    githubSyncStatusMessage = "🎉 Successfully synced and upserted $count records into Room SQLite!",
+                    settingsSnackbarMessage = "🎉 GitHub content sync completed ($count items)!"
+                )
+            } else {
+                val errorMsg = result.exceptionOrNull()?.message ?: "Unknown error"
+                _uiState.value = _uiState.value.copy(
+                    isSyncingGitHub = false,
+                    githubSyncStatusMessage = "❌ Sync failed: $errorMsg",
+                    settingsSnackbarMessage = "❌ Sync error: $errorMsg"
+                )
+            }
+        }
+    }
+
+    fun fetchAndSyncFromRemoteUrl(urlString: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSyncingGitHub = true, githubSyncStatusMessage = "Fetching remote repository payload from $urlString...")
+            val result = repository.fetchAndSyncFromRemoteUrl(urlString)
+            if (result.isSuccess) {
+                val count = result.getOrDefault(0)
+                _uiState.value = _uiState.value.copy(
+                    isSyncingGitHub = false,
+                    githubSyncStatusMessage = "🎉 Remote sync successful! $count records updated in Room database.",
+                    settingsSnackbarMessage = "🎉 Remote sync updated $count items!"
+                )
+            } else {
+                val errorMsg = result.exceptionOrNull()?.message ?: "Network error"
+                _uiState.value = _uiState.value.copy(
+                    isSyncingGitHub = false,
+                    githubSyncStatusMessage = "❌ Remote sync failed: $errorMsg",
+                    settingsSnackbarMessage = "❌ Remote sync error: $errorMsg"
+                )
+            }
+        }
+    }
+
+    fun exportCurrentDataAsGitHubJson(): String {
+        return repository.exportToGitHubJson()
+    }
+
+    fun resetDynamicDataToDefaults() {
+        viewModelScope.launch {
+            repository.resetDynamicDataToDefault()
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "🔄 Content reset to official default state."
+            )
+        }
+    }
+
+    fun dismissGitHubSyncStatus() {
+        _uiState.value = _uiState.value.copy(githubSyncStatusMessage = null)
     }
 }

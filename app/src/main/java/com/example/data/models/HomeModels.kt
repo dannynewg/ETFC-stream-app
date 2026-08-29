@@ -29,7 +29,8 @@ data class HeroSlide(
     val blueFlag: String = "🇪🇹",
     val hasChampionshipBelt: Boolean = false,
     val targetTab: String = "PPV_PASSES",
-    val ppvTierId: String? = "tier_early_bird"
+    val ppvTierId: String? = "tier_early_bird",
+    val posterImageUrl: String? = null
 )
 
 enum class VideoCategory(val displayName: String) {
@@ -63,7 +64,8 @@ data class PreviousFightVideo(
     val youtubePlaylistUrl: String = "https://youtube.com/playlist?list=PLeRATZC0Qfoo&si=dk9LKYg2Tdcg-uVm",
     val youtubePlaylistId: String = "PLeRATZC0Qfoo",
     val youtubeVideoId: String? = null,
-    val youtubeEmbedUrl: String = "https://www.youtube-nocookie.com/embed/videoseries?list=PLeRATZC0Qfoo&autoplay=1&enablejsapi=1"
+    val thumbnailUrl: String = "https://img.youtube.com/vi/${youtubeVideoId ?: "0a8G81bZ7X0"}/hqdefault.jpg",
+    val youtubeEmbedUrl: String = "https://www.youtube-nocookie.com/embed/${youtubeVideoId ?: "0a8G81bZ7X0"}?autoplay=1&enablejsapi=1"
 )
 
 enum class NewsCategory(val displayName: String, val colorHex: Long) {
@@ -87,5 +89,6 @@ data class NewsArticle(
     val isFeatured: Boolean = false,
     val tags: List<String> = emptyList(),
     val relatedFighterNames: List<String> = emptyList(),
-    val relatedBoutId: String? = null
+    val relatedBoutId: String? = null,
+    val imageUrl: String? = null
 )

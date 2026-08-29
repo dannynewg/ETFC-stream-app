@@ -179,5 +179,72 @@ interface EtfcDao {
 
     @Query("SELECT * FROM chat_moderation_logs ORDER BY timestamp DESC LIMIT 50")
     fun getRecentModerationLogs(): Flow<List<ModerationLogEntity>>
+
+    // ==========================================
+    // HERO SLIDES & MATCH POSTERS DAO
+    // ==========================================
+
+    @Query("SELECT * FROM hero_slides ORDER BY isPinned DESC, displayOrder ASC")
+    fun getAllHeroSlides(): Flow<List<HeroSlideEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHeroSlide(slide: HeroSlideEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHeroSlides(slides: List<HeroSlideEntity>)
+
+    @Query("DELETE FROM hero_slides WHERE id = :id")
+    suspend fun deleteHeroSlide(id: String)
+
+    @Query("DELETE FROM hero_slides")
+    suspend fun clearAllHeroSlides()
+
+    // ==========================================
+    // YOUTUBE VIDEOS & VOD ARCHIVE DAO
+    // ==========================================
+
+    @Query("SELECT * FROM previous_fight_videos ORDER BY displayOrder ASC")
+    fun getAllVideos(): Flow<List<PreviousVideoEntity>>
+
+    @Query("SELECT * FROM previous_fight_videos ORDER BY displayOrder ASC")
+    fun getAllPreviousVideos(): Flow<List<PreviousVideoEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertVideo(video: PreviousVideoEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertVideos(videos: List<PreviousVideoEntity>)
+
+    @Query("DELETE FROM previous_fight_videos WHERE id = :id")
+    suspend fun deleteVideo(id: String)
+
+    @Query("DELETE FROM previous_fight_videos")
+    suspend fun clearAllVideos()
+
+    // ==========================================
+    // NEWS & ANNOUNCEMENTS DAO
+    // ==========================================
+
+    @Query("SELECT * FROM news_announcements ORDER BY isFeatured DESC, timestamp DESC")
+    fun getAllNewsArticles(): Flow<List<NewsArticleEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNewsArticle(article: NewsArticleEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNewsArticles(articles: List<NewsArticleEntity>)
+
+    @Query("DELETE FROM news_announcements WHERE id = :id")
+    suspend fun deleteNewsArticle(id: String)
+
+    @Query("DELETE FROM news_announcements")
+    suspend fun clearAllNewsArticles()
+
+    // Fighter updates
+    @Query("UPDATE fighter_profiles SET photoUrl = :photoUrl WHERE fighterId = :fighterId")
+    suspend fun updateFighterPhoto(fighterId: String, photoUrl: String)
+
+    @Query("UPDATE fighter_profiles SET bio = :bio, stance = :stance, signatureMove = :signatureMove, reachInches = :reachInches, heightCm = :heightCm WHERE fighterId = :fighterId")
+    suspend fun updateFighterDetails(fighterId: String, bio: String, stance: String, signatureMove: String, reachInches: Int, heightCm: Int)
 }
 

@@ -65,7 +65,8 @@ data class Fighter(
     val signatureMove: String,
     val primaryColorHex: Long,
     val hairStyle: FighterHairStyle = FighterHairStyle.FADE_BEARD,
-    val discipline: MatchCategory = MatchCategory.MMA
+    val discipline: MatchCategory = MatchCategory.MMA,
+    val photoUrl: String? = null
 )
 
 data class Bout(

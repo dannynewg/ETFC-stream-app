@@ -81,7 +81,8 @@ data class FighterProfileEntity(
     val primaryColorHex: Long,
     val hairStyle: String,
     val discipline: String,
-    val lastUpdatedTimestamp: Long
+    val lastUpdatedTimestamp: Long,
+    val photoUrl: String? = null
 )
 
 @Entity(tableName = "fighter_statistics")
@@ -196,5 +197,85 @@ data class ModerationLogEntity(
     val reason: String,
     val timestamp: Long
 )
+
+// ==========================================
+// ADMIN & DYNAMIC FEED / SYNC SCHEMA
+// ==========================================
+
+@Entity(tableName = "hero_slides")
+data class HeroSlideEntity(
+    @PrimaryKey val id: String,
+    val type: String, // MATCH_PROMO_POSTER, UPCOMING_MATCH, EARLY_BIRD_PPV, EVENT_PROMO, VIP_PASS_PROMO
+    val tag: String,
+    val title: String,
+    val subtitle: String,
+    val eventDateOrCountdown: String,
+    val venueOrLocation: String,
+    val primaryCtaText: String,
+    val secondaryCtaText: String?,
+    val badgeColorHex: Long = 0xFFFAB818,
+    val discountText: String? = null,
+    val redFighterName: String? = null,
+    val blueFighterName: String? = null,
+    val weightClassText: String? = null,
+    val matchCategoryBadge: String? = null,
+    val eventEdition: String = "ETFC 002",
+    val redFlag: String = "🇪🇹",
+    val blueFlag: String = "🇪🇹",
+    val hasChampionshipBelt: Boolean = false,
+    val targetTab: String = "PPV_PASSES",
+    val ppvTierId: String? = "tier_early_bird",
+    val posterImageUrl: String? = null,
+    val displayOrder: Int = 0,
+    val isPinned: Boolean = false
+)
+
+@Entity(tableName = "previous_fight_videos")
+data class PreviousVideoEntity(
+    @PrimaryKey val id: String,
+    val title: String,
+    val subtitle: String,
+    val eventName: String,
+    val category: String, // ALL, FULL_REPLAY, KO_HIGHLIGHTS, PRESS_CONFERENCE, FIGHTER_BREAKDOWN
+    val durationText: String,
+    val durationSeconds: Int,
+    val viewsCountStr: String,
+    val publishedTimeAgo: String,
+    val fighterRedName: String,
+    val fighterBlueName: String,
+    val resultMethod: String,
+    val finishRoundText: String,
+    val fileSizeMb: Int,
+    val resolutionLabel: String = "1080p HD",
+    val isTitleFight: Boolean = false,
+    val contentTier: String = "FREE_PRELIMS",
+    val likesCount: Int = 1250,
+    val videoUrl: String = "",
+    val youtubePlaylistUrl: String = "https://youtube.com/playlist?list=PLeRATZC0Qfoo&si=dk9LKYg2Tdcg-uVm",
+    val youtubePlaylistId: String = "PLeRATZC0Qfoo",
+    val youtubeVideoId: String = "0a8G81bZ7X0",
+    val thumbnailUrl: String = "https://img.youtube.com/vi/0a8G81bZ7X0/hqdefault.jpg",
+    val youtubeEmbedUrl: String = "https://www.youtube-nocookie.com/embed/0a8G81bZ7X0?autoplay=1&enablejsapi=1",
+    val displayOrder: Int = 0
+)
+
+@Entity(tableName = "news_announcements")
+data class NewsArticleEntity(
+    @PrimaryKey val id: String,
+    val title: String,
+    val summary: String,
+    val fullContent: String,
+    val category: String, // PRESS_RELEASE, FIGHT_NEWS, TICKETS_PPV, TRAINING_CAMP, TECH_ANNOUNCEMENT
+    val author: String,
+    val authorRole: String,
+    val publishedDate: String,
+    val readTimeMinutes: Int,
+    val isFeatured: Boolean = false,
+    val tags: String = "",
+    val relatedFighterNames: String = "",
+    val imageUrl: String? = null,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 
 

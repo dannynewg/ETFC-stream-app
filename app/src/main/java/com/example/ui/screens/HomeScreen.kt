@@ -90,6 +90,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.example.data.models.Bout
 import com.example.data.models.ContentTier
 import com.example.data.models.HeroSlide
@@ -100,6 +102,7 @@ import com.example.data.models.UserRole
 import com.example.data.models.VideoCategory
 import com.example.ui.components.DominantLiveEventTopSection
 import com.example.ui.components.HeroSection
+import com.example.ui.components.YouTubeInAppPlayerDialog
 import com.example.ui.theme.EtfcBlueCorner
 import com.example.ui.theme.EtfcBorder
 import com.example.ui.theme.EtfcBorderGold
