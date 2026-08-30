@@ -13,6 +13,12 @@ import com.example.data.local.UserPredictionEntity
 import com.example.data.local.UserAccountEntity
 import com.example.data.local.ChatMessageEntity
 import com.example.data.local.ModerationLogEntity
+import com.example.data.local.FighterEntity
+import com.example.data.local.MatchEntity
+import com.example.data.local.AnnouncementEntity
+import com.example.data.remote.NetworkClient
+import com.example.data.remote.YouTubeDataMapper
+import com.example.data.remote.YouTubeVideoMetadata
 import com.example.data.models.AuthResult
 import com.example.data.models.Bout
 import com.example.data.models.BoutStatus
@@ -59,6 +65,32 @@ class EtfcRepository(private val dao: EtfcDao) {
     val activePass: Flow<PpvPassEntity?> = dao.getActivePpvPass()
     val userPredictions: Flow<List<UserPredictionEntity>> = dao.getAllPredictions()
     val favoriteFighters: Flow<List<FavoriteFighterEntity>> = dao.getAllFavoriteFighters()
+
+    // Core Offline Engine Flows (Fighter, Match, Announcement entities)
+    val coreFighters: Flow<List<FighterEntity>> = dao.getAllFighters().map { list ->
+        if (list.isEmpty()) {
+            fighters.map { it.toFighterEntity() }
+        } else list
+    }
+
+    val coreMatches: Flow<List<MatchEntity>> = dao.getAllMatches().map { list ->
+        if (list.isEmpty()) {
+            currentEventBouts.mapIndexed { i, bout -> bout.toMatchEntity(order = i) }
+        } else list
+    }
+
+    val coreFeaturedMatches: Flow<List<MatchEntity>> = dao.getFeaturedMatches().map { list ->
+        if (list.isEmpty()) {
+            currentEventBouts.filter { it.boutType == BoutType.MAIN_EVENT || it.isTitleFight }
+                .mapIndexed { i, bout -> bout.toMatchEntity(order = i) }
+        } else list
+    }
+
+    val coreAnnouncements: Flow<List<AnnouncementEntity>> = dao.getAllAnnouncements().map { list ->
+        if (list.isEmpty()) {
+            newsArticles.map { it.toAnnouncementEntity() }
+        } else list
+    }
 
     // Dynamic Content Flows (Populated from SQLite Room and Synced with GitHub Admin)
     val dynamicHeroSlides: Flow<List<HeroSlide>> = dao.getAllHeroSlides().map { entities ->
@@ -2050,6 +2082,18 @@ class EtfcRepository(private val dao: EtfcDao) {
         // Seed News Articles
         val initialNews = newsArticles.map { it.toEntity() }
         dao.insertNewsArticles(initialNews)
+
+        // Seed Core Offline Engine Entities (Fighter, Match, Announcement)
+        val initialFighters = fighters.map { it.toFighterEntity() }
+        dao.insertFighters(initialFighters)
+
+        val initialMatches = currentEventBouts.mapIndexed { index, bout ->
+            bout.toMatchEntity(order = index)
+        }
+        dao.insertMatches(initialMatches)
+
+        val initialAnnouncements = newsArticles.map { it.toAnnouncementEntity() }
+        dao.insertAnnouncements(initialAnnouncements)
     }
 
     suspend fun saveHeroSlide(slide: HeroSlide, isPinned: Boolean = false) {
@@ -2390,9 +2434,133 @@ class EtfcRepository(private val dao: EtfcDao) {
                 }
             }
 
+            // 5. Sync Core Matches
+            if (root.has("matches")) {
+                val matchesArray = root.getJSONArray("matches")
+                val matchEntities = mutableListOf<MatchEntity>()
+                for (i in 0 until matchesArray.length()) {
+                    val obj = matchesArray.getJSONObject(i)
+                    val mId = obj.optString("id", "match_$i")
+                    val vId = obj.optString("youtubeVideoId").takeIf { it.isNotBlank() }
+                    matchEntities.add(
+                        MatchEntity(
+                            id = mId,
+                            eventName = obj.optString("eventName", "ETFC 002: Battle of Adwa"),
+                            eventEdition = obj.optString("eventEdition", "ETFC 002"),
+                            eventDate = obj.optString("eventDate", "October 24, 2026"),
+                            venue = obj.optString("venue", "Adwa 00 Museum Arena"),
+                            division = obj.optString("division", "Middleweight (84 kg)"),
+                            redFighterId = obj.optString("redFighterId", "f_01"),
+                            redFighterName = obj.optString("redFighterName", "Sedo"),
+                            redFighterFlag = obj.optString("redFighterFlag", "🇪🇹"),
+                            blueFighterId = obj.optString("blueFighterId", "f_02"),
+                            blueFighterName = obj.optString("blueFighterName", "Desalegn"),
+                            blueFighterFlag = obj.optString("blueFighterFlag", "🇪🇹"),
+                            isTitleFight = obj.optBoolean("isTitleFight", false),
+                            isMainEvent = obj.optBoolean("isMainEvent", i == 0),
+                            isCoMain = obj.optBoolean("isCoMain", i == 1),
+                            posterUrl = obj.optString("posterUrl").takeIf { it.isNotBlank() },
+                            status = obj.optString("status", "UPCOMING"),
+                            winnerFighterId = obj.optString("winnerFighterId").takeIf { it.isNotBlank() },
+                            resultMethod = obj.optString("resultMethod").takeIf { it.isNotBlank() },
+                            finishRound = obj.optString("finishRound").takeIf { it.isNotBlank() },
+                            videoUrl = obj.optString("videoUrl").takeIf { it.isNotBlank() },
+                            youtubeVideoId = vId,
+                            thumbnailUrl = obj.optString("thumbnailUrl").takeIf { it.isNotBlank() } ?: vId?.let { "https://img.youtube.com/vi/$it/hqdefault.jpg" },
+                            displayOrder = i,
+                            lastUpdated = System.currentTimeMillis()
+                        )
+                    )
+                }
+                if (matchEntities.isNotEmpty()) {
+                    dao.clearAllMatches()
+                    dao.insertMatches(matchEntities)
+                    totalItemsSynced += matchEntities.size
+                }
+            }
+
+            // 6. Sync Core Announcements
+            if (root.has("announcements")) {
+                val annArray = root.getJSONArray("announcements")
+                val annEntities = mutableListOf<AnnouncementEntity>()
+                for (i in 0 until annArray.length()) {
+                    val obj = annArray.getJSONObject(i)
+                    annEntities.add(
+                        AnnouncementEntity(
+                            id = obj.optString("id", "ann_$i"),
+                            title = obj.optString("title", "Official Announcement"),
+                            subtitle = obj.optString("subtitle", "ETFC Media Desk"),
+                            content = obj.optString("content", ""),
+                            category = obj.optString("category", "NEWS"),
+                            author = obj.optString("author", "ETFC Official"),
+                            publishedAt = obj.optString("publishedAt", "Recent"),
+                            imageUrl = obj.optString("imageUrl").takeIf { it.isNotBlank() },
+                            actionUrl = obj.optString("actionUrl").takeIf { it.isNotBlank() },
+                            isFeatured = obj.optBoolean("isFeatured", false),
+                            tags = obj.optString("tags", ""),
+                            timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                        )
+                    )
+                }
+                if (annEntities.isNotEmpty()) {
+                    dao.clearAllAnnouncements()
+                    dao.insertAnnouncements(annEntities)
+                    totalItemsSynced += annEntities.size
+                }
+            }
+
             Result.success(totalItemsSynced)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Fetches YouTube Video Metadata via official YouTube oEmbed API using Retrofit.
+     * Extracts dynamic titles, author names, high-quality thumbnails, and embed URLs.
+     */
+    suspend fun fetchYouTubeOEmbed(urlOrVideoId: String): Result<YouTubeVideoMetadata> = withContext(Dispatchers.IO) {
+        try {
+            val videoId = YouTubeDataMapper.extractVideoId(urlOrVideoId)
+            val watchUrl = "https://www.youtube.com/watch?v=$videoId"
+            val oembedDto = NetworkClient.youtubeOEmbedService.getOEmbed(watchUrl)
+            val metadata = YouTubeDataMapper.mapToMetadata(videoId, oembedDto)
+            Result.success(metadata)
+        } catch (e: Exception) {
+            // Fallback gracefully to offline/constructed metadata if offline or restricted
+            val videoId = YouTubeDataMapper.extractVideoId(urlOrVideoId)
+            val fallbackMeta = YouTubeVideoMetadata(
+                videoId = videoId,
+                title = "ETFC Fight Archive: Match $videoId",
+                authorName = "Ethiopian Top Fight Championship (ETFC)",
+                authorUrl = "https://www.youtube.com/@ETFCstream",
+                thumbnailUrl = "https://img.youtube.com/vi/$videoId/hqdefault.jpg",
+                hqThumbnailUrl = "https://img.youtube.com/vi/$videoId/hqdefault.jpg",
+                maxResThumbnailUrl = "https://img.youtube.com/vi/$videoId/maxresdefault.jpg",
+                sdThumbnailUrl = "https://img.youtube.com/vi/$videoId/sddefault.jpg",
+                watchUrl = "https://www.youtube.com/watch?v=$videoId",
+                embedUrl = "https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&enablejsapi=1"
+            )
+            Result.success(fallbackMeta)
+        }
+    }
+
+    /**
+     * Fetches JSON configuration from a GitHub repository raw URL via Retrofit
+     * and inserts the synchronized entities into the local Room database.
+     */
+    suspend fun fetchAndSyncFromGitHubRaw(rawUrl: String): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val response = NetworkClient.gitHubRawApiService.fetchRawJsonFromUrl(rawUrl)
+            if (response.isSuccessful && response.body() != null) {
+                val jsonString = response.body()!!.string()
+                syncFromGitHubJson(jsonString)
+            } else {
+                Result.failure(Exception("GitHub Raw API returned HTTP ${response.code()}: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            // If Retrofit call encounters network exception, attempt standard URL fallback
+            fetchAndSyncFromRemoteUrl(rawUrl)
         }
     }
 
@@ -2422,6 +2590,9 @@ class EtfcRepository(private val dao: EtfcDao) {
         dao.clearAllHeroSlides()
         dao.clearAllVideos()
         dao.clearAllNewsArticles()
+        dao.clearAllFighters()
+        dao.clearAllMatches()
+        dao.clearAllAnnouncements()
         seedDynamicContentIfEmpty()
     }
 }
@@ -2595,6 +2766,134 @@ fun NewsArticleEntity.toModel(): NewsArticle {
         isFeatured = this.isFeatured,
         tags = if (this.tags.isBlank()) emptyList() else this.tags.split(","),
         relatedFighterNames = if (this.relatedFighterNames.isBlank()) emptyList() else this.relatedFighterNames.split(","),
+        imageUrl = this.imageUrl
+    )
+}
+
+// Extension functions for FighterEntity
+fun Fighter.toFighterEntity(): FighterEntity {
+    return FighterEntity(
+        id = this.id,
+        name = this.name,
+        nickname = this.nickname,
+        division = this.division.label,
+        country = this.countryName,
+        flagEmoji = this.flagEmoji,
+        wins = this.wins,
+        losses = this.losses,
+        draws = this.draws,
+        kos = this.kos,
+        submissions = this.submissions,
+        decisions = 0,
+        isChampion = this.isChampion,
+        rank = this.rank,
+        reachInches = this.reachInches,
+        heightCm = this.heightCm,
+        stance = this.stance,
+        signatureMove = this.signatureMove,
+        bio = this.bio,
+        photoUrl = this.photoUrl,
+        primaryColorHex = this.primaryColorHex,
+        discipline = this.discipline.name,
+        lastUpdated = System.currentTimeMillis()
+    )
+}
+
+fun FighterEntity.toModel(): Fighter {
+    val div = WeightClass.entries.firstOrNull { it.label.equals(this.division, ignoreCase = true) } ?: WeightClass.MIDDLEWEIGHT
+    return Fighter(
+        id = this.id,
+        name = this.name,
+        nickname = this.nickname,
+        countryName = this.country,
+        flagEmoji = this.flagEmoji,
+        division = div,
+        wins = this.wins,
+        losses = this.losses,
+        draws = this.draws,
+        kos = this.kos,
+        submissions = this.submissions,
+        strikeAccuracyPercent = 65,
+        takedownDefensePercent = 75,
+        reachInches = this.reachInches,
+        heightCm = this.heightCm,
+        stance = this.stance,
+        isChampion = this.isChampion,
+        rank = this.rank ?: 1,
+        bio = this.bio,
+        signatureMove = this.signatureMove,
+        primaryColorHex = this.primaryColorHex,
+        photoUrl = this.photoUrl
+    )
+}
+
+// Extension functions for MatchEntity
+fun Bout.toMatchEntity(order: Int = 0): MatchEntity {
+    return MatchEntity(
+        id = this.id,
+        eventName = this.eventName,
+        eventEdition = "ETFC 002",
+        eventDate = "October 24, 2026",
+        venue = this.eventVenue,
+        division = this.weightClass.label,
+        redFighterId = this.fighterRed.id,
+        redFighterName = this.fighterRed.name,
+        redFighterFlag = this.fighterRed.flagEmoji,
+        blueFighterId = this.fighterBlue.id,
+        blueFighterName = this.fighterBlue.name,
+        blueFighterFlag = this.fighterBlue.flagEmoji,
+        isTitleFight = this.isTitleFight,
+        isMainEvent = this.boutType == BoutType.MAIN_EVENT,
+        isCoMain = this.boutType == BoutType.CO_MAIN,
+        posterUrl = this.fighterRed.photoUrl,
+        status = this.status.name,
+        winnerFighterId = this.winnerId,
+        resultMethod = this.resultMethod,
+        finishRound = "Round ${this.liveRound}",
+        videoUrl = "",
+        youtubeVideoId = null,
+        thumbnailUrl = this.fighterRed.photoUrl,
+        displayOrder = order,
+        lastUpdated = System.currentTimeMillis()
+    )
+}
+
+// Extension functions for AnnouncementEntity
+fun NewsArticle.toAnnouncementEntity(): AnnouncementEntity {
+    return AnnouncementEntity(
+        id = this.id,
+        title = this.title,
+        subtitle = this.summary,
+        content = this.fullContent,
+        category = this.category.name,
+        author = this.author,
+        publishedAt = this.publishedDate,
+        imageUrl = this.imageUrl,
+        isFeatured = this.isFeatured,
+        tags = this.tags.joinToString(","),
+        timestamp = System.currentTimeMillis()
+    )
+}
+
+fun AnnouncementEntity.toModel(): NewsArticle {
+    val cat = try {
+        NewsCategory.valueOf(this.category)
+    } catch (e: Exception) {
+        NewsCategory.PRESS_RELEASE
+    }
+    return NewsArticle(
+        id = this.id,
+        title = this.title,
+        summary = this.subtitle,
+        fullContent = this.content,
+        category = cat,
+        author = this.author,
+        authorRole = "ETFC Media Desk",
+        publishedDate = this.publishedAt,
+        readTimeMinutes = 3,
+        isFeatured = this.isFeatured,
+        tags = if (this.tags.isBlank()) emptyList() else this.tags.split(","),
+        relatedFighterNames = emptyList(),
         imageUrl = this.imageUrl
     )
 }

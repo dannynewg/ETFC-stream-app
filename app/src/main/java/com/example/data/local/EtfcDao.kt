@@ -249,5 +249,81 @@ interface EtfcDao {
 
     @Query("UPDATE fighter_profiles SET bio = :bio, stance = :stance, signatureMove = :signatureMove, reachInches = :reachInches, heightCm = :heightCm WHERE fighterId = :fighterId")
     suspend fun updateFighterDetails(fighterId: String, bio: String, stance: String, signatureMove: String, reachInches: Int, heightCm: Int)
+
+    // ==========================================
+    // OFFLINE SYNC ENGINE DAO (Fighter, Match, Announcement)
+    // ==========================================
+
+    // Core Fighters
+    @Query("SELECT * FROM fighters ORDER BY rank ASC, wins DESC")
+    fun getAllFighters(): Flow<List<FighterEntity>>
+
+    @Query("SELECT * FROM fighters WHERE id = :id LIMIT 1")
+    fun getFighterById(id: String): Flow<FighterEntity?>
+
+    @Query("SELECT * FROM fighters WHERE id = :id LIMIT 1")
+    suspend fun getFighterDirect(id: String): FighterEntity?
+
+    @Query("SELECT * FROM fighters WHERE division = :division ORDER BY rank ASC")
+    fun getFightersByDivision(division: String): Flow<List<FighterEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFighter(fighter: FighterEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFighters(fighters: List<FighterEntity>)
+
+    @Query("DELETE FROM fighters WHERE id = :id")
+    suspend fun deleteFighter(id: String)
+
+    @Query("DELETE FROM fighters")
+    suspend fun clearAllFighters()
+
+    // Core Matches
+    @Query("SELECT * FROM matches ORDER BY displayOrder ASC, lastUpdated DESC")
+    fun getAllMatches(): Flow<List<MatchEntity>>
+
+    @Query("SELECT * FROM matches WHERE isMainEvent = 1 OR isTitleFight = 1 OR isCoMain = 1 ORDER BY displayOrder ASC")
+    fun getFeaturedMatches(): Flow<List<MatchEntity>>
+
+    @Query("SELECT * FROM matches WHERE id = :id LIMIT 1")
+    fun getMatchById(id: String): Flow<MatchEntity?>
+
+    @Query("SELECT * FROM matches WHERE status = :status ORDER BY displayOrder ASC")
+    fun getMatchesByStatus(status: String): Flow<List<MatchEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMatch(match: MatchEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMatches(matches: List<MatchEntity>)
+
+    @Query("DELETE FROM matches WHERE id = :id")
+    suspend fun deleteMatch(id: String)
+
+    @Query("DELETE FROM matches")
+    suspend fun clearAllMatches()
+
+    // Core Announcements
+    @Query("SELECT * FROM announcements ORDER BY isFeatured DESC, timestamp DESC")
+    fun getAllAnnouncements(): Flow<List<AnnouncementEntity>>
+
+    @Query("SELECT * FROM announcements WHERE isFeatured = 1 ORDER BY timestamp DESC")
+    fun getFeaturedAnnouncements(): Flow<List<AnnouncementEntity>>
+
+    @Query("SELECT * FROM announcements WHERE id = :id LIMIT 1")
+    fun getAnnouncementById(id: String): Flow<AnnouncementEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAnnouncement(announcement: AnnouncementEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAnnouncements(announcements: List<AnnouncementEntity>)
+
+    @Query("DELETE FROM announcements WHERE id = :id")
+    suspend fun deleteAnnouncement(id: String)
+
+    @Query("DELETE FROM announcements")
+    suspend fun clearAllAnnouncements()
 }
 

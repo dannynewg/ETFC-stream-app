@@ -277,5 +277,81 @@ data class NewsArticleEntity(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+// ==========================================
+// OFFLINE ENGINE CORE SCHEMA (Fighter, Match, Announcement)
+// ==========================================
+
+@Entity(tableName = "fighters")
+data class FighterEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val nickname: String,
+    val division: String,
+    val country: String,
+    val flagEmoji: String,
+    val wins: Int,
+    val losses: Int,
+    val draws: Int = 0,
+    val kos: Int = 0,
+    val submissions: Int = 0,
+    val decisions: Int = 0,
+    val isChampion: Boolean = false,
+    val rank: Int? = null,
+    val reachInches: Int = 74,
+    val heightCm: Int = 182,
+    val stance: String = "Orthodox",
+    val signatureMove: String = "Right Hook",
+    val bio: String = "",
+    val photoUrl: String? = null,
+    val primaryColorHex: Long = 0xFFEF4444,
+    val discipline: String = "MMA",
+    val lastUpdated: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "matches")
+data class MatchEntity(
+    @PrimaryKey val id: String,
+    val eventName: String,
+    val eventEdition: String = "ETFC 002",
+    val eventDate: String,
+    val venue: String,
+    val division: String,
+    val redFighterId: String,
+    val redFighterName: String,
+    val redFighterFlag: String = "🇪🇹",
+    val blueFighterId: String,
+    val blueFighterName: String,
+    val blueFighterFlag: String = "🇪🇹",
+    val isTitleFight: Boolean = false,
+    val isMainEvent: Boolean = false,
+    val isCoMain: Boolean = false,
+    val posterUrl: String? = null,
+    val status: String = "UPCOMING", // UPCOMING, LIVE, COMPLETED
+    val winnerFighterId: String? = null,
+    val resultMethod: String? = null,
+    val finishRound: String? = null,
+    val videoUrl: String? = null,
+    val youtubeVideoId: String? = null,
+    val thumbnailUrl: String? = null,
+    val displayOrder: Int = 0,
+    val lastUpdated: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "announcements")
+data class AnnouncementEntity(
+    @PrimaryKey val id: String,
+    val title: String,
+    val subtitle: String,
+    val content: String,
+    val category: String = "NEWS", // NEWS, FIGHT_UPDATE, PRESS_RELEASE, EVENT_ALERT, PPV
+    val author: String = "ETFC Official",
+    val publishedAt: String,
+    val imageUrl: String? = null,
+    val actionUrl: String? = null,
+    val isFeatured: Boolean = false,
+    val tags: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 
 

@@ -20,9 +20,12 @@ import androidx.room.RoomDatabase
         ModerationLogEntity::class,
         HeroSlideEntity::class,
         PreviousVideoEntity::class,
-        NewsArticleEntity::class
+        NewsArticleEntity::class,
+        FighterEntity::class,
+        MatchEntity::class,
+        AnnouncementEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class EtfcDatabase : RoomDatabase() {
