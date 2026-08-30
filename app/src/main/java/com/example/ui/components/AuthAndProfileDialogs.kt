@@ -508,7 +508,8 @@ fun UserProfileDrawer(
     onQuickSwitchUser: (UserAccount) -> Unit,
     onOpenAuthDialog: () -> Unit,
     onLogout: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onOpenAdminPortal: (() -> Unit)? = null
 ) {
     if (!isVisible) return
 
@@ -721,6 +722,27 @@ fun UserProfileDrawer(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Action Buttons
+            if (onOpenAdminPortal != null) {
+                Button(
+                    onClick = {
+                        onDismiss()
+                        onOpenAdminPortal()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .testTag("drawer_open_admin_portal_btn"),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black)
+                ) {
+                    Icon(imageVector = Icons.Default.Security, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("OPEN ADMIN CMS & GITHUB SYNC", fontWeight = FontWeight.Black, fontSize = 11.5.sp)
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)

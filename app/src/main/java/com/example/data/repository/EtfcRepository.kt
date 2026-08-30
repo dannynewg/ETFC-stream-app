@@ -2089,42 +2089,29 @@ class EtfcRepository(private val dao: EtfcDao) {
         heightCm: Int,
         photoUrl: String?
     ) {
-        val existing = dao.getFighterProfileById(fighterId)
-        if (existing != null) {
-            val updated = existing.copy(
-                name = name,
-                nickname = nickname,
-                countryName = country,
-                flagEmoji = flag,
-                bio = bio,
-                stance = stance,
-                signatureMove = signatureMove,
-                reachInches = reachInches,
-                heightCm = heightCm,
-                photoUrl = photoUrl
-            )
-            dao.insertFighterProfile(updated)
-        } else {
-            val baseFighter = fighters.firstOrNull { it.id == fighterId }
-            val newProfile = FighterProfileEntity(
-                fighterId = fighterId,
-                name = name,
-                nickname = nickname,
-                countryName = country,
-                flagEmoji = flag,
-                division = baseFighter?.division?.label ?: "Middleweight",
-                stance = stance,
-                reachInches = reachInches,
-                heightCm = heightCm,
-                isChampion = baseFighter?.isChampion ?: false,
-                rank = baseFighter?.rank ?: 1,
-                bio = bio,
-                signatureMove = signatureMove,
-                primaryColorHex = baseFighter?.primaryColorHex ?: 0xFFEF4444,
-                photoUrl = photoUrl
-            )
-            dao.insertFighterProfile(newProfile)
-        }
+        val existing = dao.getFighterProfileDirect(fighterId)
+        val baseFighter = fighters.firstOrNull { it.id == fighterId }
+        val updated = FighterProfileEntity(
+            fighterId = fighterId,
+            name = name,
+            nickname = nickname,
+            countryName = country,
+            flagEmoji = flag,
+            division = existing?.division ?: baseFighter?.division?.label ?: "Middleweight",
+            stance = stance,
+            reachInches = reachInches,
+            heightCm = heightCm,
+            isChampion = existing?.isChampion ?: baseFighter?.isChampion ?: false,
+            rank = existing?.rank ?: baseFighter?.rank ?: 1,
+            bio = bio,
+            signatureMove = signatureMove,
+            primaryColorHex = existing?.primaryColorHex ?: baseFighter?.primaryColorHex ?: 0xFFEF4444,
+            hairStyle = existing?.hairStyle ?: baseFighter?.hairStyle?.name ?: "FADE_BEARD",
+            discipline = existing?.discipline ?: baseFighter?.discipline?.name ?: "MMA",
+            lastUpdatedTimestamp = System.currentTimeMillis(),
+            photoUrl = photoUrl
+        )
+        dao.insertFighterProfile(updated)
     }
 
     // --- JSON Serialization for GitHub Repository Sync ---
@@ -2390,6 +2377,9 @@ class EtfcRepository(private val dao: EtfcDao) {
                             bio = obj.optString("bio", baseFighter?.bio ?: ""),
                             signatureMove = obj.optString("signatureMove", baseFighter?.signatureMove ?: ""),
                             primaryColorHex = obj.optLong("primaryColorHex", baseFighter?.primaryColorHex ?: 0xFFEF4444),
+                            hairStyle = obj.optString("hairStyle", baseFighter?.hairStyle?.name ?: "FADE_BEARD"),
+                            discipline = obj.optString("discipline", baseFighter?.discipline?.name ?: "MMA"),
+                            lastUpdatedTimestamp = System.currentTimeMillis(),
                             photoUrl = obj.optString("photoUrl").takeIf { it.isNotBlank() }
                         )
                     )
@@ -2521,7 +2511,7 @@ fun PreviousFightVideo.toEntity(order: Int = 0): PreviousVideoEntity {
         videoUrl = this.videoUrl,
         youtubePlaylistUrl = this.youtubePlaylistUrl,
         youtubePlaylistId = this.youtubePlaylistId,
-        youtubeVideoId = this.youtubeVideoId,
+        youtubeVideoId = this.youtubeVideoId ?: "0a8G81bZ7X0",
         thumbnailUrl = this.thumbnailUrl,
         youtubeEmbedUrl = this.youtubeEmbedUrl,
         displayOrder = order

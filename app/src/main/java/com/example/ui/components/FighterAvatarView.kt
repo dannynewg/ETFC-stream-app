@@ -71,8 +71,17 @@ fun FighterAvatarView(
                 .size(size)
                 .clip(CircleShape)
         ) {
-            Canvas(modifier = Modifier.size(size)) {
-                drawFighterPortrait(fighter = fighter, canvasSize = this.size)
+            if (!fighter.photoUrl.isNullOrBlank()) {
+                coil.compose.AsyncImage(
+                    model = fighter.photoUrl,
+                    contentDescription = fighter.name,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.size(size)
+                )
+            } else {
+                Canvas(modifier = Modifier.size(size)) {
+                    drawFighterPortrait(fighter = fighter, canvasSize = this.size)
+                }
             }
         }
 

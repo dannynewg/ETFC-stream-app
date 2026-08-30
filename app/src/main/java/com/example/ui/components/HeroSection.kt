@@ -972,6 +972,27 @@ fun UpcomingMatchHeroCard(
                     )
                 )
         ) {
+            if (!slide.posterImageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = slide.posterImageUrl,
+                    contentDescription = slide.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.55f),
+                                    Color.Black.copy(alpha = 0.75f),
+                                    Color.Black.copy(alpha = 0.92f)
+                                )
+                            )
+                        )
+                )
+            }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1183,6 +1204,27 @@ fun EarlyBirdPpvHeroCard(
                     )
                 )
         ) {
+            if (!slide.posterImageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = slide.posterImageUrl,
+                    contentDescription = slide.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.55f),
+                                    Color.Black.copy(alpha = 0.75f),
+                                    Color.Black.copy(alpha = 0.92f)
+                                )
+                            )
+                        )
+                )
+            }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1348,6 +1390,27 @@ fun EventTeaserHeroCard(
                     )
                 )
         ) {
+            if (!slide.posterImageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = slide.posterImageUrl,
+                    contentDescription = slide.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.55f),
+                                    Color.Black.copy(alpha = 0.75f),
+                                    Color.Black.copy(alpha = 0.92f)
+                                )
+                            )
+                        )
+                )
+            }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1499,6 +1562,27 @@ fun VipPassHeroCard(
                     )
                 )
         ) {
+            if (!slide.posterImageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = slide.posterImageUrl,
+                    contentDescription = slide.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.55f),
+                                    Color.Black.copy(alpha = 0.75f),
+                                    Color.Black.copy(alpha = 0.92f)
+                                )
+                            )
+                        )
+                )
+            }
             Column(
                 modifier = Modifier
                     .fillMaxSize()

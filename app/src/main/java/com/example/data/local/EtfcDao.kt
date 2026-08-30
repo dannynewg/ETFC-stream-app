@@ -66,6 +66,9 @@ interface EtfcDao {
     @Query("SELECT * FROM fighter_profiles WHERE fighterId = :fighterId LIMIT 1")
     fun getFighterProfileById(fighterId: String): Flow<FighterProfileEntity?>
 
+    @Query("SELECT * FROM fighter_profiles WHERE fighterId = :fighterId LIMIT 1")
+    suspend fun getFighterProfileDirect(fighterId: String): FighterProfileEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFighterProfile(profile: FighterProfileEntity)
 

@@ -169,6 +169,7 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
     val ppvPasses by viewModel.ppvPasses.collectAsState()
     val activePass by viewModel.activePass.collectAsState()
     val favoriteFighters by viewModel.favoriteFighters.collectAsState()
+    val dynamicFighters by viewModel.dynamicFighters.collectAsState()
 
     val currentRole = uiState.currentUser?.role ?: UserRole.GUEST
     val roleColor = Color(currentRole.colorHex)
@@ -566,7 +567,7 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
 
                 AppTab.FIGHTERS -> {
                     FightersScreen(
-                        fighters = viewModel.fighters,
+                        fighters = dynamicFighters,
                         favoriteFighters = favoriteFighters,
                         searchQuery = uiState.searchQuery,
                         selectedDivision = uiState.selectedDivisionFilter,
@@ -574,8 +575,8 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
                         onDivisionSelected = { viewModel.setDivisionFilter(it) },
                         onToggleFavorite = { fighter, isFav -> viewModel.toggleFavoriteFighter(fighter, isFav) },
                         onCompareFighter = { fighter ->
-                            val other = viewModel.fighters.firstOrNull { it.id != fighter.id && it.division == fighter.division }
-                                ?: viewModel.fighters.first { it.id != fighter.id }
+                            val other = dynamicFighters.firstOrNull { it.id != fighter.id && it.division == fighter.division }
+                                ?: dynamicFighters.first { it.id != fighter.id }
                             viewModel.openTaleOfTheTape(fighter, other)
                         }
                     )
@@ -705,6 +706,15 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
             viewModel.openAuthDialog()
         },
         onLogout = { viewModel.logout() },
-        onDismiss = { viewModel.closeProfileDrawer() }
+        onDismiss = { viewModel.closeProfileDrawer() },
+        onOpenAdminPortal = { viewModel.openAdminPortal() }
     )
+
+    // 7. Admin & CMS Portal with GitHub & SQLite Sync
+    if (uiState.isAdminPortalOpen) {
+        com.example.ui.components.AdminPortalDialog(
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeAdminPortal() }
+        )
+    }
 }

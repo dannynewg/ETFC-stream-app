@@ -136,9 +136,9 @@ fun HomeScreen(
     val userRole = currentUser?.role ?: UserRole.GUEST
     val activeBout = uiState.selectedBout ?: viewModel.bouts.firstOrNull()
 
-    val heroSlides = viewModel.heroSlides
-    val previousVideos = viewModel.previousVideos
-    val newsArticles = viewModel.newsArticles
+    val heroSlides by viewModel.dynamicHeroSlides.collectAsState()
+    val previousVideos by viewModel.dynamicPreviousVideos.collectAsState()
+    val newsArticles by viewModel.dynamicNewsArticles.collectAsState()
 
     val filteredVideos = remember(uiState.selectedVideoCategory, previousVideos) {
         if (uiState.selectedVideoCategory == VideoCategory.ALL) {
@@ -620,26 +620,74 @@ fun PreviousVideoListItem(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Video Thumbnail Mock with Duration Badge
+            // Video Thumbnail with Duration Badge & Play Overlay
             Box(
                 modifier = Modifier
-                    .width(120.dp)
-                    .height(78.dp)
+                    .width(128.dp)
+                    .height(82.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF1E1E28),
-                                Color(0xFF0F0F14)
-                            )
-                        )
-                    )
+                    .background(Color(0xFF14141E))
                     .border(0.5.dp, EtfcBorder, RoundedCornerShape(8.dp))
             ) {
+                val thumb = video.thumbnailUrl.ifBlank {
+                    if (!video.youtubeVideoId.isNullOrBlank()) "https://img.youtube.com/vi/${video.youtubeVideoId}/hqdefault.jpg" else ""
+                }
+                if (thumb.isNotBlank()) {
+                    AsyncImage(
+                        model = thumb,
+                        contentDescription = video.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                // Semi-transparent gradient scrim overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.65f)
+                                )
+                            )
+                        )
+                )
+
+                // YouTube Red Accent / Category Icon on Top-Start
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = Color.Red.copy(alpha = 0.85f),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = "YT",
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White
+                        )
+                    }
+                }
+
                 // Play Icon Center
                 Surface(
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.6f),
+                    color = Color.Black.copy(alpha = 0.65f),
+                    border = BorderStroke(1.dp, EtfcGold.copy(alpha = 0.8f)),
                     modifier = Modifier.align(Alignment.Center)
                 ) {
                     Icon(
@@ -669,20 +717,20 @@ fun PreviousVideoListItem(
                     )
                 }
 
-                // HD/4K Badge (Top Left)
+                // HD/4K Badge (Bottom Left)
                 Surface(
                     shape = RoundedCornerShape(4.dp),
                     color = EtfcCardInner.copy(alpha = 0.9f),
                     modifier = Modifier
-                        .align(Alignment.TopStart)
+                        .align(Alignment.BottomStart)
                         .padding(4.dp)
                 ) {
                     Text(
                         text = video.resolutionLabel,
-                        fontSize = 8.sp,
+                        fontSize = 7.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = EtfcGold,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                        modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
                     )
                 }
             }
