@@ -708,11 +708,13 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
         },
         onLogout = { viewModel.logout() },
         onDismiss = { viewModel.closeProfileDrawer() },
-        onOpenAdminPortal = { viewModel.openAdminPortal() }
+        onOpenAdminPortal = if (uiState.currentUser?.isAdmin == true || uiState.currentUser?.role == com.example.data.models.UserRole.ADMIN) {
+            { viewModel.openAdminPortal() }
+        } else null
     )
 
-    // 7. Admin & CMS Portal with GitHub & SQLite Sync
-    if (uiState.isAdminPortalOpen) {
+    // 7. Admin & CMS Portal (Admins Only)
+    if (uiState.isAdminPortalOpen && (uiState.currentUser?.isAdmin == true || uiState.currentUser?.role == com.example.data.models.UserRole.ADMIN)) {
         androidx.compose.ui.window.Dialog(
             onDismissRequest = { viewModel.closeAdminPortal() },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)

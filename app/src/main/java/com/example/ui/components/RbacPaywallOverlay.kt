@@ -162,7 +162,7 @@ fun RbacPaywallOverlay(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (currentUser == null || currentUser.role == UserRole.GUEST || currentUser.role == UserRole.FREE_USER) {
+            if (currentUser == null || currentUser.role == UserRole.GUEST) {
                 OutlinedButton(
                     onClick = onSignIn,
                     modifier = Modifier

@@ -78,7 +78,7 @@ fun AdminPanelScreen(
         "🖼️ Hero Slider" to dynamicSlides.size,
         "🎬 Fight Videos" to dynamicVideos.size,
         "📢 News" to dynamicNews.size,
-        "🐙 GitHub Sync" to 0
+        "☁️ Cloud & GitHub" to 0
     )
 
     Scaffold(
@@ -2661,6 +2661,113 @@ fun AdminGitHubSyncTab(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(bottom = 88.dp)
     ) {
+        // Firebase Realtime Cloud Sync Card
+        item {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = EtfcCard),
+                border = BorderStroke(1.dp, Color(0xFFFFCA28).copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFFFCA28).copy(alpha = 0.2f),
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFCA28),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                            Column {
+                                Text(
+                                    text = "🔥 FIREBASE REALTIME CLOUD SYNC",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFFFFCA28)
+                                )
+                                Text(
+                                    text = "Project: etfc-app-de76f (Live Firestore)",
+                                    fontSize = 11.sp,
+                                    color = EtfcTextMuted
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF10B981).copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.5f))
+                        ) {
+                            Text(
+                                text = "REALTIME ACTIVE",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF10B981),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "All admin edits to Fighters, Match Cards, Hero Slides, Fight Videos, and News automatically broadcast to all fan devices in real-time over Firestore snapshot listeners.",
+                        fontSize = 11.sp,
+                        color = EtfcTextSecondary
+                    )
+
+                    Button(
+                        onClick = { viewModel.syncAllDataToFirebase() },
+                        enabled = !uiState.isFirebaseSyncing,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFCA28),
+                            contentColor = Color.Black
+                        ),
+                        modifier = Modifier.fillMaxWidth().testTag("btn_seed_firebase")
+                    ) {
+                        if (uiState.isFirebaseSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.Black,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("UPLOADING TO FIREBASE...", fontWeight = FontWeight.Black)
+                        } else {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("UPLOAD / RE-SYNC ALL DATA TO FIREBASE", fontWeight = FontWeight.Black)
+                        }
+                    }
+
+                    if (uiState.firebaseSyncStatusMessage != null) {
+                        Text(
+                            text = uiState.firebaseSyncStatusMessage!!,
+                            fontSize = 11.sp,
+                            color = Color(0xFFFFCA28),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        }
         item {
             Card(
                 shape = RoundedCornerShape(12.dp),

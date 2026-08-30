@@ -123,7 +123,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val activePass by viewModel.activePass.collectAsState()
-    val userRole = uiState.currentUser?.role ?: UserRole.VIP_MEMBER
+    val userRole = uiState.currentUser?.role ?: UserRole.USER
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -325,89 +325,91 @@ fun SettingsScreen(
                 }
             }
 
-            // 2.5 ADMIN CMS & GITHUB REPO SYNC CONTROL PANEL
-            item {
-                Card(
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1408)),
-                    border = BorderStroke(1.5.dp, EtfcGold),
-                    modifier = Modifier.fillMaxWidth().testTag("admin_cms_settings_card")
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+            // 2.5 ADMIN CMS & FIREBASE REALTIME CONTROL PANEL (ADMINS ONLY)
+            if (uiState.currentUser?.isAdmin == true || uiState.currentUser?.role == UserRole.ADMIN) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1408)),
+                        border = BorderStroke(1.5.dp, EtfcGold),
+                        modifier = Modifier.fillMaxWidth().testTag("admin_cms_settings_card")
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = EtfcGold.copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, EtfcGold)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Security,
-                                    contentDescription = null,
-                                    tint = EtfcGold,
-                                    modifier = Modifier.padding(6.dp).size(22.dp)
-                                )
-                            }
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "ADMIN CMS & GITHUB REPO SYNC",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 13.sp,
-                                        color = EtfcGold,
-                                        letterSpacing = 0.5.sp
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = EtfcGold.copy(alpha = 0.2f),
+                                    border = BorderStroke(1.dp, EtfcGold)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Security,
+                                        contentDescription = null,
+                                        tint = EtfcGold,
+                                        modifier = Modifier.padding(6.dp).size(22.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = EtfcSuccess.copy(alpha = 0.2f),
-                                        border = BorderStroke(0.5.dp, EtfcSuccess)
-                                    ) {
-                                        Text(
-                                            text = "ONLINE",
-                                            fontSize = 8.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = EtfcSuccess,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                        )
-                                    }
                                 }
-                                Text(
-                                    text = "Post match posters, YouTube links, update fighter stats & sync SQLite from GitHub",
-                                    fontSize = 10.5.sp,
-                                    color = EtfcTextMuted
-                                )
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "ADMIN CMS & FIREBASE BROADCAST",
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 13.sp,
+                                            color = EtfcGold,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = EtfcSuccess.copy(alpha = 0.2f),
+                                            border = BorderStroke(0.5.dp, EtfcSuccess)
+                                        ) {
+                                            Text(
+                                                text = "ONLINE",
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = EtfcSuccess,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = "Post match posters, YouTube links, update fighter stats & broadcast live over Firebase",
+                                        fontSize = 10.5.sp,
+                                        color = EtfcTextMuted
+                                    )
+                                }
                             }
-                        }
 
-                        HorizontalDivider(color = EtfcBorderGold.copy(alpha = 0.4f))
+                            HorizontalDivider(color = EtfcBorderGold.copy(alpha = 0.4f))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = { viewModel.openAdminPortal() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = EtfcGold,
-                                    contentColor = Color.Black
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(40.dp)
-                                    .testTag("launch_admin_portal_btn")
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Security, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("OPEN ADMIN PORTAL", fontSize = 11.sp, fontWeight = FontWeight.Black)
+                                Button(
+                                    onClick = { viewModel.openAdminPortal() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = EtfcGold,
+                                        contentColor = Color.Black
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
+                                        .testTag("launch_admin_portal_btn")
+                                ) {
+                                    Icon(imageVector = Icons.Default.Security, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("OPEN ADMIN PORTAL", fontSize = 11.sp, fontWeight = FontWeight.Black)
+                                }
                             }
                         }
                     }

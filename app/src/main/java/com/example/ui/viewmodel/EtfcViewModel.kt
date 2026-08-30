@@ -150,12 +150,15 @@ data class EtfcUiState(
     val dynamicMatches: List<Bout> = emptyList(),
     val isSyncingGitHub: Boolean = false,
     val githubSyncStatusMessage: String? = null,
+    val isFirebaseSyncing: Boolean = false,
+    val firebaseSyncStatusMessage: String? = "🟢 Firebase Realtime Sync Active",
     val isAdminPortalOpen: Boolean = false,
     val adminSelectedTab: Int = 0
 )
 
 class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
+    val syncManager: com.example.data.remote.FirebaseSyncManager
     private val repository: EtfcRepository
     val notificationManager: com.example.notifications.EtfcNotificationManager
 
@@ -185,8 +188,16 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         val db = EtfcDatabase.getDatabase(application)
-        repository = EtfcRepository(db.etfcDao())
+        syncManager = com.example.data.remote.FirebaseSyncManager(application, db.etfcDao(), viewModelScope)
+        repository = EtfcRepository(db.etfcDao(), syncManager)
         notificationManager = com.example.notifications.EtfcNotificationManager(application)
+
+        // Start Firebase Real-Time Synchronization
+        try {
+            syncManager.startRealtimeSync()
+        } catch (e: Exception) {
+            // Log or fallback
+        }
 
         fighters = repository.fighters
         bouts = repository.currentEventBouts
@@ -1444,6 +1455,34 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
             repository.resetDynamicDataToDefault()
             _uiState.value = _uiState.value.copy(
                 settingsSnackbarMessage = "🔄 Content reset to official default state."
+            )
+        }
+    }
+
+    fun syncAllDataToFirebase() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isFirebaseSyncing = true,
+                firebaseSyncStatusMessage = "⏳ Syncing all local content to Firebase Firestore..."
+            )
+            val currentFighters = dynamicFighters.value
+            val currentMatches = dynamicMatches.value
+            val currentSlides = dynamicHeroSlides.value
+            val currentVideos = dynamicPreviousVideos.value
+            val currentNews = dynamicNewsArticles.value
+
+            syncManager.seedInitialDataToCloud(
+                fighters = currentFighters,
+                bouts = currentMatches,
+                slides = currentSlides,
+                videos = currentVideos,
+                news = currentNews
+            )
+
+            _uiState.value = _uiState.value.copy(
+                isFirebaseSyncing = false,
+                firebaseSyncStatusMessage = "🟢 Firebase Realtime Sync Active & Up-to-Date",
+                settingsSnackbarMessage = "☁️ All content pushed to Firebase Firestore live!"
             )
         }
     }

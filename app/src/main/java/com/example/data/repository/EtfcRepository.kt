@@ -58,7 +58,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 
-class EtfcRepository(private val dao: EtfcDao) {
+class EtfcRepository(
+    private val dao: EtfcDao,
+    val syncManager: com.example.data.remote.FirebaseSyncManager? = null
+) {
 
     // --- Local DB Flows ---
     val downloadedFights: Flow<List<DownloadedFightEntity>> = dao.getAllDownloadedFights()
@@ -1136,73 +1139,59 @@ class EtfcRepository(private val dao: EtfcDao) {
     suspend fun seedDefaultUsersAndChatIfNeeded(primaryBoutId: String = "bout_sedo_jhonny") {
         val demoUsers = listOf(
             UserAccountEntity(
-                userId = "usr_mod_01",
-                email = "mod@etfc.stream",
-                handle = "@etfc_mod",
-                displayName = "ETFC Arena Moderator",
-                passwordHash = SecurityUtils.hashPassword("mod123"),
-                phoneNumber = "+251911000001",
-                countryCode = "+251",
-                flagEmoji = "🇪🇹",
-                role = UserRole.MODERATOR.name,
-                authToken = SecurityUtils.generateAuthToken("usr_mod_01", UserRole.MODERATOR.name),
-                createdTimestamp = System.currentTimeMillis() - 86400000L * 30,
-                lastLoginTimestamp = System.currentTimeMillis()
-            ),
-            UserAccountEntity(
-                userId = "usr_vip_02",
-                email = "vip@etfc.stream",
-                handle = "@habesha_vip",
-                displayName = "Yonas Habesha",
-                passwordHash = SecurityUtils.hashPassword("vip123"),
-                phoneNumber = "+251911000002",
-                countryCode = "+251",
-                flagEmoji = "🇪🇹",
-                role = UserRole.VIP_MEMBER.name,
-                authToken = SecurityUtils.generateAuthToken("usr_vip_02", UserRole.VIP_MEMBER.name),
-                createdTimestamp = System.currentTimeMillis() - 86400000L * 14,
-                lastLoginTimestamp = System.currentTimeMillis()
-            ),
-            UserAccountEntity(
-                userId = "usr_fan_03",
-                email = "fan@etfc.stream",
-                handle = "@sheger_striker",
-                displayName = "Dawit Striker",
-                passwordHash = SecurityUtils.hashPassword("fan123"),
-                phoneNumber = "+251911000003",
-                countryCode = "+251",
-                flagEmoji = "🇪🇹",
-                role = UserRole.PPV_BUYER.name,
-                authToken = SecurityUtils.generateAuthToken("usr_fan_03", UserRole.PPV_BUYER.name),
-                createdTimestamp = System.currentTimeMillis() - 86400000L * 7,
-                lastLoginTimestamp = System.currentTimeMillis()
-            ),
-            UserAccountEntity(
-                userId = "usr_free_04",
-                email = "free@etfc.stream",
-                handle = "@addis_newbie",
-                displayName = "Abel Addis",
-                passwordHash = SecurityUtils.hashPassword("free123"),
-                phoneNumber = "+251911000004",
-                countryCode = "+251",
-                flagEmoji = "🇪🇹",
-                role = UserRole.FREE_USER.name,
-                authToken = SecurityUtils.generateAuthToken("usr_free_04", UserRole.FREE_USER.name),
-                createdTimestamp = System.currentTimeMillis() - 86400000L * 2,
-                lastLoginTimestamp = System.currentTimeMillis()
-            ),
-            UserAccountEntity(
-                userId = "usr_admin_00",
-                email = "admin@etfc.stream",
-                handle = "@etfc_admin",
-                displayName = "ETFC Commissioner",
+                userId = "usr_admin_danny",
+                email = "dannynewg@gmail.com",
+                handle = "@dannynewg",
+                displayName = "Danny Newg",
                 passwordHash = SecurityUtils.hashPassword("admin123"),
                 phoneNumber = "+251911000000",
                 countryCode = "+251",
                 flagEmoji = "🇪🇹",
                 role = UserRole.ADMIN.name,
-                authToken = SecurityUtils.generateAuthToken("usr_admin_00", UserRole.ADMIN.name),
+                authToken = SecurityUtils.generateAuthToken("usr_admin_danny", UserRole.ADMIN.name),
                 createdTimestamp = System.currentTimeMillis() - 86400000L * 90,
+                lastLoginTimestamp = System.currentTimeMillis()
+            ),
+            UserAccountEntity(
+                userId = "usr_fan_01",
+                email = "yonas@etfc.stream",
+                handle = "@habesha_fan",
+                displayName = "Yonas Habesha",
+                passwordHash = SecurityUtils.hashPassword("user123"),
+                phoneNumber = "+251911000002",
+                countryCode = "+251",
+                flagEmoji = "🇪🇹",
+                role = UserRole.USER.name,
+                authToken = SecurityUtils.generateAuthToken("usr_fan_01", UserRole.USER.name),
+                createdTimestamp = System.currentTimeMillis() - 86400000L * 14,
+                lastLoginTimestamp = System.currentTimeMillis()
+            ),
+            UserAccountEntity(
+                userId = "usr_fan_02",
+                email = "dawit@etfc.stream",
+                handle = "@sheger_striker",
+                displayName = "Dawit Striker",
+                passwordHash = SecurityUtils.hashPassword("user123"),
+                phoneNumber = "+251911000003",
+                countryCode = "+251",
+                flagEmoji = "🇪🇹",
+                role = UserRole.USER.name,
+                authToken = SecurityUtils.generateAuthToken("usr_fan_02", UserRole.USER.name),
+                createdTimestamp = System.currentTimeMillis() - 86400000L * 7,
+                lastLoginTimestamp = System.currentTimeMillis()
+            ),
+            UserAccountEntity(
+                userId = "usr_fan_03",
+                email = "brian@etfc.stream",
+                handle = "@nairobi_mma",
+                displayName = "Brian Ochieng",
+                passwordHash = SecurityUtils.hashPassword("user123"),
+                phoneNumber = "+254700000001",
+                countryCode = "+254",
+                flagEmoji = "🇰🇪",
+                role = UserRole.USER.name,
+                authToken = SecurityUtils.generateAuthToken("usr_fan_03", UserRole.USER.name),
+                createdTimestamp = System.currentTimeMillis() - 86400000L * 2,
                 lastLoginTimestamp = System.currentTimeMillis()
             )
         )
@@ -1214,11 +1203,11 @@ class EtfcRepository(private val dao: EtfcDao) {
             ChatMessageEntity(
                 messageId = "msg_pin_01",
                 boutId = primaryBoutId,
-                userId = "usr_mod_01",
-                userHandle = "@etfc_mod",
-                userName = "ETFC Arena Moderator",
+                userId = "usr_admin_danny",
+                userHandle = "@dannynewg",
+                userName = "Danny Newg",
                 userFlag = "🇪🇹",
-                userRole = UserRole.MODERATOR.name,
+                userRole = UserRole.ADMIN.name,
                 messageText = "📢 OFFICIAL ANNOUNCEMENT: Welcome to ETFC 002: Adwa Fight Night live from Adwa 00 Museum! Main event scheduled for 5 championship rounds.",
                 timestamp = System.currentTimeMillis() - 300_000,
                 isSuperFan = true,
@@ -1228,25 +1217,25 @@ class EtfcRepository(private val dao: EtfcDao) {
             ChatMessageEntity(
                 messageId = "msg_02",
                 boutId = primaryBoutId,
-                userId = "usr_vip_02",
-                userHandle = "@habesha_vip",
+                userId = "usr_fan_01",
+                userHandle = "@habesha_fan",
                 userName = "Yonas Habesha",
                 userFlag = "🇪🇹",
-                userRole = UserRole.VIP_MEMBER.name,
+                userRole = UserRole.USER.name,
                 messageText = "Ringside audio feed is insane! @jhonny looks locked in for this title defense 🥊",
                 timestamp = System.currentTimeMillis() - 180_000,
-                isSuperFan = true,
+                isSuperFan = false,
                 cheerEmoji = "🥊",
                 mentionedHandles = "@jhonny"
             ),
             ChatMessageEntity(
                 messageId = "msg_03",
                 boutId = primaryBoutId,
-                userId = "usr_fan_03",
+                userId = "usr_fan_02",
                 userHandle = "@sheger_striker",
                 userName = "Dawit Striker",
                 userFlag = "🇪🇹",
-                userRole = UserRole.PPV_BUYER.name,
+                userRole = UserRole.USER.name,
                 messageText = "@sedo's hammer cross is dangerous! Round 3 is going to be wild! 🔥",
                 timestamp = System.currentTimeMillis() - 120_000,
                 cheerEmoji = "🔥",
@@ -1255,26 +1244,14 @@ class EtfcRepository(private val dao: EtfcDao) {
             ChatMessageEntity(
                 messageId = "msg_04",
                 boutId = primaryBoutId,
-                userId = "usr_nairobi_05",
+                userId = "usr_fan_03",
                 userHandle = "@nairobi_mma",
                 userName = "Brian Ochieng",
                 userFlag = "🇰🇪",
-                userRole = UserRole.PPV_BUYER.name,
-                messageText = "East Africa MMA on top! Watching live via Nairobi edge node 🇰🇪 @etfc_mod stream is silky smooth!",
+                userRole = UserRole.USER.name,
+                messageText = "East Africa MMA on top! Watching live via Nairobi edge node 🇰🇪 stream is silky smooth!",
                 timestamp = System.currentTimeMillis() - 60_000,
-                mentionedHandles = "@etfc_mod"
-            ),
-            ChatMessageEntity(
-                messageId = "msg_05",
-                boutId = primaryBoutId,
-                userId = "usr_free_04",
-                userHandle = "@addis_newbie",
-                userName = "Abel Addis",
-                userFlag = "🇪🇹",
-                userRole = UserRole.FREE_USER.name,
-                messageText = "@sedo vs @jhonny best fight in Ethiopian martial arts history! 🇪🇹",
-                timestamp = System.currentTimeMillis() - 25_000,
-                mentionedHandles = "@sedo,@jhonny"
+                mentionedHandles = "@dannynewg"
             )
         )
 
@@ -1316,7 +1293,7 @@ class EtfcRepository(private val dao: EtfcDao) {
 
         val userId = "usr_${UUID.randomUUID().toString().take(8)}"
         val passwordHash = SecurityUtils.hashPassword(password)
-        val role = UserRole.FREE_USER.name
+        val role = if (email.trim().equals("dannynewg@gmail.com", ignoreCase = true)) UserRole.ADMIN.name else UserRole.USER.name
         val token = SecurityUtils.generateAuthToken(userId, role)
 
         val newEntity = UserAccountEntity(
@@ -1376,10 +1353,14 @@ class EtfcRepository(private val dao: EtfcDao) {
     }
 
     private fun mapUserEntityToModel(entity: UserAccountEntity): UserAccount {
-        val parsedRole = try {
-            UserRole.valueOf(entity.role)
-        } catch (_: Exception) {
-            UserRole.FREE_USER
+        val parsedRole = if (entity.email.equals("dannynewg@gmail.com", ignoreCase = true)) {
+            UserRole.ADMIN
+        } else {
+            try {
+                UserRole.valueOf(entity.role)
+            } catch (_: Exception) {
+                UserRole.USER
+            }
         }
         return UserAccount(
             userId = entity.userId,
@@ -1408,7 +1389,7 @@ class EtfcRepository(private val dao: EtfcDao) {
                 val parsedRole = try {
                     UserRole.valueOf(entity.userRole)
                 } catch (_: Exception) {
-                    UserRole.FREE_USER
+                    UserRole.USER
                 }
                 val mentions = if (entity.mentionedHandles.isNotBlank()) {
                     entity.mentionedHandles.split(",").map { it.trim() }
@@ -1441,7 +1422,7 @@ class EtfcRepository(private val dao: EtfcDao) {
                 val parsedRole = try {
                     UserRole.valueOf(it.userRole)
                 } catch (_: Exception) {
-                    UserRole.FREE_USER
+                    UserRole.USER
                 }
                 ChatMessage(
                     id = it.messageId,
@@ -2185,26 +2166,32 @@ class EtfcRepository(private val dao: EtfcDao) {
 
     suspend fun saveHeroSlide(slide: HeroSlide, isPinned: Boolean = false) {
         dao.insertHeroSlide(slide.toEntity(isPinned = isPinned))
+        syncManager?.pushHeroSlideToCloud(slide, isPinned)
     }
 
     suspend fun deleteHeroSlide(slideId: String) {
         dao.deleteHeroSlide(slideId)
+        syncManager?.deleteHeroSlideFromCloud(slideId)
     }
 
     suspend fun savePreviousVideo(video: PreviousFightVideo, displayOrder: Int = 0) {
         dao.insertVideo(video.toEntity(order = displayOrder))
+        syncManager?.pushVideoToCloud(video)
     }
 
     suspend fun deletePreviousVideo(videoId: String) {
         dao.deleteVideo(videoId)
+        syncManager?.deleteVideoFromCloud(videoId)
     }
 
     suspend fun saveNewsArticle(article: NewsArticle) {
         dao.insertNewsArticle(article.toEntity())
+        syncManager?.pushNewsToCloud(article)
     }
 
     suspend fun deleteNewsArticle(articleId: String) {
         dao.deleteNewsArticle(articleId)
+        syncManager?.deleteNewsFromCloud(articleId)
     }
 
     suspend fun saveFighter(fighter: Fighter) {
@@ -2232,19 +2219,23 @@ class EtfcRepository(private val dao: EtfcDao) {
             photoUrl = fighter.photoUrl
         )
         dao.insertFighterProfile(profile)
+        syncManager?.pushFighterToCloud(fighter)
     }
 
     suspend fun deleteFighter(fighterId: String) {
         dao.deleteFighter(fighterId)
         dao.deleteFighterProfileById(fighterId)
+        syncManager?.deleteFighterFromCloud(fighterId)
     }
 
     suspend fun saveMatchCard(bout: Bout, order: Int = 0) {
         dao.insertMatch(bout.toMatchEntity(order = order))
+        syncManager?.pushMatchToCloud(bout, order)
     }
 
     suspend fun deleteMatchCard(matchId: String) {
         dao.deleteMatch(matchId)
+        syncManager?.deleteMatchFromCloud(matchId)
     }
 
     suspend fun updateFighterProfile(
@@ -2261,7 +2252,7 @@ class EtfcRepository(private val dao: EtfcDao) {
         photoUrl: String?
     ) {
         val existing = dao.getFighterProfileDirect(fighterId)
-        val baseFighter = fighters.firstOrNull { it.id == fighterId }
+        val baseFighter: Fighter? = fighters.firstOrNull { it.id == fighterId }
         val division = existing?.division ?: baseFighter?.division?.label ?: "Middleweight"
         val rank = existing?.rank ?: baseFighter?.rank ?: 1
         val isChampion = existing?.isChampion ?: baseFighter?.isChampion ?: false
@@ -2317,6 +2308,22 @@ class EtfcRepository(private val dao: EtfcDao) {
             lastUpdated = System.currentTimeMillis()
         )
         dao.insertFighter(updatedFighterEntity)
+
+        baseFighter?.let { b ->
+            val fighterObj = b.copy(
+                name = name,
+                nickname = nickname,
+                countryName = country,
+                flagEmoji = flag,
+                bio = bio,
+                stance = stance,
+                signatureMove = signatureMove,
+                reachInches = reachInches,
+                heightCm = heightCm,
+                photoUrl = photoUrl
+            )
+            syncManager?.pushFighterToCloud(fighterObj)
+        }
     }
 
     // --- JSON Serialization for GitHub Repository Sync ---
