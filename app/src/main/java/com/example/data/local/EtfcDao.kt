@@ -345,6 +345,27 @@ interface EtfcDao {
     @Query("DELETE FROM matches")
     suspend fun clearAllMatches()
 
+    @Query("SELECT * FROM fighters")
+    suspend fun getAllFightersDirect(): List<FighterEntity>
+
+    @Query("SELECT * FROM fighter_profiles")
+    suspend fun getAllFighterProfilesDirect(): List<FighterProfileEntity>
+
+    @Query("SELECT * FROM matches")
+    suspend fun getAllMatchesDirect(): List<MatchEntity>
+
+    @Query("SELECT * FROM matches WHERE redFighterId = :fighterId OR blueFighterId = :fighterId OR redFighterName = :fighterName OR blueFighterName = :fighterName")
+    suspend fun getMatchesForFighter(fighterId: String, fighterName: String): List<MatchEntity>
+
+    @Query("SELECT * FROM hero_slides")
+    suspend fun getAllHeroSlidesDirect(): List<HeroSlideEntity>
+
+    @Query("SELECT * FROM previous_fight_videos")
+    suspend fun getAllVideosDirect(): List<PreviousVideoEntity>
+
+    @Query("SELECT * FROM news_announcements")
+    suspend fun getAllNewsArticlesDirect(): List<NewsArticleEntity>
+
     // Core Announcements
     @Query("SELECT * FROM announcements ORDER BY isFeatured DESC, timestamp DESC")
     fun getAllAnnouncements(): Flow<List<AnnouncementEntity>>

@@ -31,6 +31,7 @@ import com.example.data.models.VideoCategory
 import com.example.data.remote.YouTubeVideoMetadata
 import com.example.data.models.WeightClass
 import com.example.data.repository.EtfcRepository
+import com.example.util.DataConsistencyWorker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -313,6 +314,14 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
         startLiveFightTelemetryEngine()
         startSimulatedArenaChatEngine()
+
+        // Background consistency sync worker for crosslinked fighters and matches
+        try {
+            DataConsistencyWorker.schedulePeriodic(application)
+            DataConsistencyWorker.enqueue(application, null)
+        } catch (e: Exception) {
+            // Log or ignore during testing
+        }
     }
 
     private fun observeChatForBout(boutId: String) {
@@ -1299,6 +1308,11 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
     fun saveFighter(fighter: Fighter) {
         viewModelScope.launch {
             repository.saveFighter(fighter)
+            try {
+                DataConsistencyWorker.enqueue(getApplication(), fighter.id)
+            } catch (e: Exception) {
+                // Ignore worker queuing exceptions
+            }
             _uiState.value = _uiState.value.copy(
                 settingsSnackbarMessage = "✅ Fighter saved to SQLite: ${fighter.name}"
             )
@@ -1366,6 +1380,11 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
                 heightCm = heightCm,
                 photoUrl = photoUrl
             )
+            try {
+                DataConsistencyWorker.enqueue(getApplication(), fighterId)
+            } catch (e: Exception) {
+                // Ignore worker queuing exceptions
+            }
             _uiState.value = _uiState.value.copy(
                 settingsSnackbarMessage = "✅ Fighter profile & stats updated for $name!"
             )

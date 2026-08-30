@@ -64,8 +64,13 @@ fun AdminPanelScreen(
     var matchToEdit by remember { mutableStateOf<Bout?>(null) }
 
     var isAddSlideDialogOpen by remember { mutableStateOf(false) }
+    var slideToEdit by remember { mutableStateOf<HeroSlide?>(null) }
+
     var isAddVideoDialogOpen by remember { mutableStateOf(false) }
+    var videoToEdit by remember { mutableStateOf<PreviousFightVideo?>(null) }
+
     var isAddNewsDialogOpen by remember { mutableStateOf(false) }
+    var newsToEdit by remember { mutableStateOf<NewsArticle?>(null) }
 
     val tabs = listOf(
         "🥊 Fighters" to dynamicFighters.size,
@@ -261,7 +266,10 @@ fun AdminPanelScreen(
                 }
                 2 -> {
                     ExtendedFloatingActionButton(
-                        onClick = { isAddSlideDialogOpen = true },
+                        onClick = {
+                            slideToEdit = null
+                            isAddSlideDialogOpen = true
+                        },
                         containerColor = EtfcGold,
                         contentColor = Color.Black,
                         icon = { Icon(Icons.Default.AddPhotoAlternate, contentDescription = null) },
@@ -271,7 +279,10 @@ fun AdminPanelScreen(
                 }
                 3 -> {
                     ExtendedFloatingActionButton(
-                        onClick = { isAddVideoDialogOpen = true },
+                        onClick = {
+                            videoToEdit = null
+                            isAddVideoDialogOpen = true
+                        },
                         containerColor = EtfcRedPrimary,
                         contentColor = Color.White,
                         icon = { Icon(Icons.Default.VideoCall, contentDescription = null) },
@@ -281,7 +292,10 @@ fun AdminPanelScreen(
                 }
                 4 -> {
                     ExtendedFloatingActionButton(
-                        onClick = { isAddNewsDialogOpen = true },
+                        onClick = {
+                            newsToEdit = null
+                            isAddNewsDialogOpen = true
+                        },
                         containerColor = EtfcGold,
                         contentColor = Color.Black,
                         icon = { Icon(Icons.Default.PostAdd, contentDescription = null) },
@@ -323,18 +337,30 @@ fun AdminPanelScreen(
                 2 -> {
                     AdminHeroSlidesTab(
                         slides = dynamicSlides,
+                        onEditSlide = { slide ->
+                            slideToEdit = slide
+                            isAddSlideDialogOpen = true
+                        },
                         onDeleteSlide = { viewModel.deleteHeroSlide(it) }
                     )
                 }
                 3 -> {
                     AdminVideosTab(
                         videos = dynamicVideos,
+                        onEditVideo = { video ->
+                            videoToEdit = video
+                            isAddVideoDialogOpen = true
+                        },
                         onDeleteVideo = { viewModel.deletePreviousVideo(it) }
                     )
                 }
                 4 -> {
                     AdminNewsTab(
                         articles = dynamicNews,
+                        onEditArticle = { article ->
+                            newsToEdit = article
+                            isAddNewsDialogOpen = true
+                        },
                         onDeleteArticle = { viewModel.deleteNewsAnnouncement(it) }
                     )
                 }
@@ -385,41 +411,56 @@ fun AdminPanelScreen(
     }
 
     // =========================================================================
-    // DIALOG: ADD HERO SLIDE
+    // DIALOG: ADD / EDIT HERO SLIDE
     // =========================================================================
     if (isAddSlideDialogOpen) {
-        AddHeroSlideDialog(
-            onDismiss = { isAddSlideDialogOpen = false },
-            onAddSlide = { slide, isPinned ->
+        HeroSlideAddEditDialog(
+            existingSlide = slideToEdit,
+            onDismiss = {
+                isAddSlideDialogOpen = false
+                slideToEdit = null
+            },
+            onSave = { slide, isPinned ->
                 viewModel.postMatchPromoPoster(slide, isPinned)
                 isAddSlideDialogOpen = false
+                slideToEdit = null
             }
         )
     }
 
     // =========================================================================
-    // DIALOG: ADD VIDEO
+    // DIALOG: ADD / EDIT VIDEO
     // =========================================================================
     if (isAddVideoDialogOpen) {
-        AddVideoDialog(
+        VideoAddEditDialog(
+            existingVideo = videoToEdit,
             viewModel = viewModel,
-            onDismiss = { isAddVideoDialogOpen = false },
-            onAddVideo = { video ->
+            onDismiss = {
+                isAddVideoDialogOpen = false
+                videoToEdit = null
+            },
+            onSave = { video ->
                 viewModel.addPreviousFightVideo(video)
                 isAddVideoDialogOpen = false
+                videoToEdit = null
             }
         )
     }
 
     // =========================================================================
-    // DIALOG: ADD NEWS ANNOUNCEMENT
+    // DIALOG: ADD / EDIT NEWS ANNOUNCEMENT
     // =========================================================================
     if (isAddNewsDialogOpen) {
-        AddNewsDialog(
-            onDismiss = { isAddNewsDialogOpen = false },
-            onAddNews = { article ->
+        NewsAddEditDialog(
+            existingArticle = newsToEdit,
+            onDismiss = {
+                isAddNewsDialogOpen = false
+                newsToEdit = null
+            },
+            onSave = { article ->
                 viewModel.postNewsAnnouncement(article)
                 isAddNewsDialogOpen = false
+                newsToEdit = null
             }
         )
     }
@@ -2210,8 +2251,11 @@ fun MatchAddEditDialog(
 @Composable
 fun AdminHeroSlidesTab(
     slides: List<HeroSlide>,
+    onEditSlide: (HeroSlide) -> Unit,
     onDeleteSlide: (String) -> Unit
 ) {
+    var slideToDelete by remember { mutableStateOf<HeroSlide?>(null) }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -2225,7 +2269,9 @@ fun AdminHeroSlidesTab(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = EtfcCard),
                 border = BorderStroke(1.dp, EtfcBorderGold.copy(alpha = 0.25f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("admin_slide_card_${slide.id}")
             ) {
                 Column(
                     modifier = Modifier
@@ -2263,12 +2309,41 @@ fun AdminHeroSlidesTab(
                             )
                         }
 
-                        IconButton(onClick = { onDeleteSlide(slide.id) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = EtfcRedPrimary)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = { slideToDelete = slide },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcRedPrimary),
+                                border = BorderStroke(1.dp, EtfcRedPrimary.copy(alpha = 0.4f)),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("admin_delete_slide_${slide.id}")
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("DELETE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = { onEditSlide(slide) },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = EtfcGold,
+                                    contentColor = Color.Black
+                                ),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("admin_edit_slide_${slide.id}")
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("EDIT PROMO", fontSize = 11.sp, fontWeight = FontWeight.Black)
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(text = slide.title, fontWeight = FontWeight.Black, fontSize = 14.sp, color = EtfcTextPrimary)
                     Text(text = slide.subtitle, fontSize = 12.sp, color = EtfcTextSecondary)
                     Text(text = slide.venueOrLocation, fontSize = 10.sp, color = EtfcTextMuted)
@@ -2276,13 +2351,48 @@ fun AdminHeroSlidesTab(
             }
         }
     }
+
+    if (slideToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { slideToDelete = null },
+            title = { Text("Delete Promo Slide?", fontWeight = FontWeight.Black, color = EtfcGold) },
+            text = {
+                Text(
+                    "Are you sure you want to remove \"${slideToDelete?.title}\" from the live hero slider?",
+                    color = EtfcTextSecondary,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        slideToDelete?.id?.let { onDeleteSlide(it) }
+                        slideToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = EtfcRedPrimary)
+                ) {
+                    Text("DELETE", fontWeight = FontWeight.Black, color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { slideToDelete = null }) {
+                    Text("CANCEL", color = EtfcTextSecondary)
+                }
+            },
+            containerColor = EtfcCard,
+            shape = RoundedCornerShape(14.dp)
+        )
+    }
 }
 
 @Composable
 fun AdminVideosTab(
     videos: List<PreviousFightVideo>,
+    onEditVideo: (PreviousFightVideo) -> Unit,
     onDeleteVideo: (String) -> Unit
 ) {
+    var videoToDelete by remember { mutableStateOf<PreviousFightVideo?>(null) }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -2296,52 +2406,129 @@ fun AdminVideosTab(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = EtfcCard),
                 border = BorderStroke(1.dp, EtfcBorderGold.copy(alpha = 0.25f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("admin_video_card_${video.id}")
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(12.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(70.dp, 50.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(EtfcSurface),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        if (video.thumbnailUrl.isNotEmpty()) {
-                            AsyncImage(
-                                model = video.thumbnailUrl,
-                                contentDescription = video.title,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                        Box(
+                            modifier = Modifier
+                                .size(70.dp, 50.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(EtfcSurface),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (video.thumbnailUrl.isNotEmpty()) {
+                                AsyncImage(
+                                    model = video.thumbnailUrl,
+                                    contentDescription = video.title,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            Icon(Icons.Default.PlayCircleFilled, contentDescription = null, tint = EtfcRedPrimary)
                         }
-                        Icon(Icons.Default.PlayCircleFilled, contentDescription = null, tint = EtfcRedPrimary)
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = video.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = EtfcTextPrimary, maxLines = 2)
+                            Text(text = "${video.viewsCountStr} • ${video.durationText}", fontSize = 10.sp, color = EtfcTextMuted)
+                        }
                     }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = video.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = EtfcTextPrimary, maxLines = 2)
-                        Text(text = "${video.viewsCountStr} • ${video.durationText}", fontSize = 10.sp, color = EtfcTextMuted)
-                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(color = EtfcBorderGold.copy(alpha = 0.15f))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    IconButton(onClick = { onDeleteVideo(video.id) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = EtfcRedPrimary)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { videoToDelete = video },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcRedPrimary),
+                            border = BorderStroke(1.dp, EtfcRedPrimary.copy(alpha = 0.4f)),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.testTag("admin_delete_video_${video.id}")
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("DELETE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = { onEditVideo(video) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = EtfcRedPrimary,
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.testTag("admin_edit_video_${video.id}")
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("EDIT VIDEO", fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        }
                     }
                 }
             }
         }
+    }
+
+    if (videoToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { videoToDelete = null },
+            title = { Text("Delete Fight Video?", fontWeight = FontWeight.Black, color = EtfcGold) },
+            text = {
+                Text(
+                    "Are you sure you want to remove \"${videoToDelete?.title}\" from the fight archive?",
+                    color = EtfcTextSecondary,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        videoToDelete?.id?.let { onDeleteVideo(it) }
+                        videoToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = EtfcRedPrimary)
+                ) {
+                    Text("DELETE", fontWeight = FontWeight.Black, color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { videoToDelete = null }) {
+                    Text("CANCEL", color = EtfcTextSecondary)
+                }
+            },
+            containerColor = EtfcCard,
+            shape = RoundedCornerShape(14.dp)
+        )
     }
 }
 
 @Composable
 fun AdminNewsTab(
     articles: List<NewsArticle>,
+    onEditArticle: (NewsArticle) -> Unit,
     onDeleteArticle: (String) -> Unit
 ) {
+    var articleToDelete by remember { mutableStateOf<NewsArticle?>(null) }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -2355,7 +2542,9 @@ fun AdminNewsTab(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = EtfcCard),
                 border = BorderStroke(1.dp, EtfcBorderGold.copy(alpha = 0.25f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("admin_news_card_${article.id}")
             ) {
                 Column(
                     modifier = Modifier
@@ -2380,18 +2569,79 @@ fun AdminNewsTab(
                             )
                         }
 
-                        IconButton(onClick = { onDeleteArticle(article.id) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = EtfcRedPrimary)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = { articleToDelete = article },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcRedPrimary),
+                                border = BorderStroke(1.dp, EtfcRedPrimary.copy(alpha = 0.4f)),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("admin_delete_news_${article.id}")
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("DELETE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = { onEditArticle(article) },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = EtfcGold,
+                                    contentColor = Color.Black
+                                ),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("admin_edit_news_${article.id}")
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("EDIT NEWS", fontSize = 11.sp, fontWeight = FontWeight.Black)
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(text = article.title, fontWeight = FontWeight.Black, fontSize = 14.sp, color = EtfcTextPrimary)
                     Text(text = article.summary, fontSize = 12.sp, color = EtfcTextSecondary, maxLines = 2)
                     Text(text = "${article.author} • ${article.publishedDate}", fontSize = 10.sp, color = EtfcTextMuted)
                 }
             }
         }
+    }
+
+    if (articleToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { articleToDelete = null },
+            title = { Text("Delete News Announcement?", fontWeight = FontWeight.Black, color = EtfcGold) },
+            text = {
+                Text(
+                    "Are you sure you want to delete \"${articleToDelete?.title}\"?",
+                    color = EtfcTextSecondary,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        articleToDelete?.id?.let { onDeleteArticle(it) }
+                        articleToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = EtfcRedPrimary)
+                ) {
+                    Text("DELETE", fontWeight = FontWeight.Black, color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { articleToDelete = null }) {
+                    Text("CANCEL", color = EtfcTextSecondary)
+                }
+            },
+            containerColor = EtfcCard,
+            shape = RoundedCornerShape(14.dp)
+        )
     }
 }
 
@@ -2520,20 +2770,26 @@ fun AdminGitHubSyncTab(
     }
 }
 
-// Dialog helper implementations for Hero Slides, Videos, News
+// =============================================================================
+// DIALOGS: ADD / EDIT HERO SLIDES, VIDEOS, NEWS
+// =============================================================================
+
 @Composable
-fun AddHeroSlideDialog(
+fun HeroSlideAddEditDialog(
+    existingSlide: HeroSlide?,
     onDismiss: () -> Unit,
-    onAddSlide: (HeroSlide, Boolean) -> Unit
+    onSave: (HeroSlide, Boolean) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var subtitle by remember { mutableStateOf("") }
-    var tag by remember { mutableStateOf("LIVE EVENT") }
-    var location by remember { mutableStateOf("Adwa 00 Museum Arena, Addis Ababa") }
-    var dateText by remember { mutableStateOf("SATURDAY • 8:00 PM EAT") }
-    var ctaText by remember { mutableStateOf("ORDER PPV PASS") }
+    val isEditMode = existingSlide != null
+
+    var title by remember { mutableStateOf(existingSlide?.title ?: "") }
+    var subtitle by remember { mutableStateOf(existingSlide?.subtitle ?: "") }
+    var tag by remember { mutableStateOf(existingSlide?.tag ?: "LIVE EVENT") }
+    var location by remember { mutableStateOf(existingSlide?.venueOrLocation ?: "Adwa 00 Museum Arena, Addis Ababa") }
+    var dateText by remember { mutableStateOf(existingSlide?.eventDateOrCountdown ?: "SATURDAY • 8:00 PM EAT") }
+    var ctaText by remember { mutableStateOf(existingSlide?.primaryCtaText ?: "ORDER PPV PASS") }
     var isPinned by remember { mutableStateOf(false) }
-    var posterUriString by remember { mutableStateOf("") }
+    var posterUriString by remember { mutableStateOf(existingSlide?.posterImageUrl ?: "") }
 
     val pickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -2544,38 +2800,161 @@ fun AddHeroSlideDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = EtfcCard,
-        title = { Text("Add Promo Slide", fontWeight = FontWeight.Black, color = EtfcGold) },
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = if (isEditMode) Icons.Default.Edit else Icons.Default.AddPhotoAlternate,
+                    contentDescription = null,
+                    tint = EtfcGold
+                )
+                Text(
+                    text = if (isEditMode) "Edit Promo Slide" else "Add Promo Slide",
+                    fontWeight = FontWeight.Black,
+                    color = EtfcGold,
+                    fontSize = 18.sp
+                )
+            }
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { pickerLauncher.launch("image/*") },
-                    colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black)
-                ) {
-                    Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Pick Local Poster", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 450.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = { pickerLauncher.launch("image/*") },
+                            colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Pick Local Poster", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        if (posterUriString.isNotEmpty()) {
+                            OutlinedButton(
+                                onClick = { posterUriString = "" },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcRedPrimary)
+                            ) {
+                                Text("Clear", fontSize = 11.sp)
+                            }
+                        }
+                    }
                 }
 
                 if (posterUriString.isNotEmpty()) {
-                    AsyncImage(
-                        model = posterUriString,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(6.dp)),
-                        contentScale = ContentScale.Crop
+                    item {
+                        AsyncImage(
+                            model = posterUriString,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(90.dp)
+                                .clip(RoundedCornerShape(6.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Title *") },
+                        modifier = Modifier.fillMaxWidth().testTag("input_slide_title"),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
                     )
                 }
 
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title *") }, singleLine = true)
-                OutlinedTextField(value = subtitle, onValueChange = { subtitle = it }, label = { Text("Subtitle") }, singleLine = true)
-                OutlinedTextField(value = tag, onValueChange = { tag = it }, label = { Text("Badge Tag") }, singleLine = true)
-                OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") }, singleLine = true)
+                item {
+                    OutlinedTextField(
+                        value = subtitle,
+                        onValueChange = { subtitle = it },
+                        label = { Text("Subtitle") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = tag,
+                        onValueChange = { tag = it },
+                        label = { Text("Badge Tag (e.g. LIVE EVENT, EARLY BIRD)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = location,
+                        onValueChange = { location = it },
+                        label = { Text("Location / Venue") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = dateText,
+                        onValueChange = { dateText = it },
+                        label = { Text("Date & Time / Countdown Text") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = ctaText,
+                        onValueChange = { ctaText = it },
+                        label = { Text("CTA Button Text") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        val slide = HeroSlide(
+                        val slide = (existingSlide ?: HeroSlide(
                             id = "slide_${UUID.randomUUID().toString().take(6)}",
                             type = HeroSlideType.UPCOMING_MATCH,
                             tag = tag,
@@ -2585,13 +2964,22 @@ fun AddHeroSlideDialog(
                             venueOrLocation = location,
                             primaryCtaText = ctaText,
                             posterImageUrl = posterUriString.ifBlank { null }
+                        )).copy(
+                            title = title,
+                            subtitle = subtitle,
+                            tag = tag,
+                            venueOrLocation = location,
+                            eventDateOrCountdown = dateText,
+                            primaryCtaText = ctaText,
+                            posterImageUrl = posterUriString.ifBlank { null }
                         )
-                        onAddSlide(slide, isPinned)
+                        onSave(slide, isPinned)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black),
+                modifier = Modifier.testTag("btn_save_slide_dialog")
             ) {
-                Text("ADD SLIDE", fontWeight = FontWeight.Black)
+                Text(if (isEditMode) "UPDATE SLIDE" else "ADD SLIDE", fontWeight = FontWeight.Black)
             }
         },
         dismissButton = {
@@ -2601,16 +2989,19 @@ fun AddHeroSlideDialog(
 }
 
 @Composable
-fun AddVideoDialog(
+fun VideoAddEditDialog(
+    existingVideo: PreviousFightVideo?,
     viewModel: EtfcViewModel,
     onDismiss: () -> Unit,
-    onAddVideo: (PreviousFightVideo) -> Unit
+    onSave: (PreviousFightVideo) -> Unit
 ) {
-    var videoUrlOrId by remember { mutableStateOf("") }
-    var title by remember { mutableStateOf("") }
-    var fightersText by remember { mutableStateOf("") }
-    var duration by remember { mutableStateOf("12:45") }
-    var thumbnail by remember { mutableStateOf("") }
+    val isEditMode = existingVideo != null
+
+    var videoUrlOrId by remember { mutableStateOf(existingVideo?.youtubeVideoId ?: "") }
+    var title by remember { mutableStateOf(existingVideo?.title ?: "") }
+    var fightersText by remember { mutableStateOf(existingVideo?.subtitle ?: "") }
+    var duration by remember { mutableStateOf(existingVideo?.durationText ?: "12:45") }
+    var thumbnail by remember { mutableStateOf(existingVideo?.thumbnailUrl ?: "") }
     var isFetching by remember { mutableStateOf(false) }
 
     val pickerLauncher = rememberLauncherForActivityResult(
@@ -2622,57 +3013,145 @@ fun AddVideoDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = EtfcCard,
-        title = { Text("Add Fight Video & Archive", fontWeight = FontWeight.Black, color = EtfcRedPrimary) },
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = if (isEditMode) Icons.Default.Edit else Icons.Default.VideoCall,
+                    contentDescription = null,
+                    tint = EtfcRedPrimary
+                )
+                Text(
+                    text = if (isEditMode) "Edit Fight Video" else "Add Fight Video & Archive",
+                    fontWeight = FontWeight.Black,
+                    color = EtfcRedPrimary,
+                    fontSize = 18.sp
+                )
+            }
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = videoUrlOrId,
-                    onValueChange = {
-                        videoUrlOrId = it
-                        if (it.length > 5) {
-                            isFetching = true
-                            viewModel.fetchYouTubeMetadata(it) { meta ->
-                                isFetching = false
-                                if (meta != null) {
-                                    title = meta.title
-                                    thumbnail = meta.thumbnailUrl
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 450.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    OutlinedTextField(
+                        value = videoUrlOrId,
+                        onValueChange = {
+                            videoUrlOrId = it
+                            if (it.length > 5 && !isEditMode) {
+                                isFetching = true
+                                viewModel.fetchYouTubeMetadata(it) { meta ->
+                                    isFetching = false
+                                    if (meta != null) {
+                                        title = meta.title
+                                        thumbnail = meta.thumbnailUrl
+                                    }
                                 }
                             }
-                        }
-                    },
-                    label = { Text("YouTube URL or Video ID") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Button(
-                    onClick = { pickerLauncher.launch("image/*") },
-                    colors = ButtonDefaults.buttonColors(containerColor = EtfcCardInner, contentColor = EtfcGold)
-                ) {
-                    Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Or Pick Local Thumbnail", fontSize = 11.sp)
-                }
-
-                if (thumbnail.isNotEmpty()) {
-                    AsyncImage(
-                        model = thumbnail,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(6.dp)),
-                        contentScale = ContentScale.Crop
+                        },
+                        label = { Text("YouTube URL or Video ID") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("input_video_url"),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcRedPrimary,
+                            focusedLabelColor = EtfcRedPrimary
+                        )
                     )
                 }
 
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Video Title *") }, singleLine = true)
-                OutlinedTextField(value = fightersText, onValueChange = { fightersText = it }, label = { Text("Fighters (e.g. Sedo vs Jhonny)") }, singleLine = true)
-                OutlinedTextField(value = duration, onValueChange = { duration = it }, label = { Text("Duration (e.g. 15:30)") }, singleLine = true)
+                item {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = { pickerLauncher.launch("image/*") },
+                            colors = ButtonDefaults.buttonColors(containerColor = EtfcCardInner, contentColor = EtfcGold)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Pick Local Thumbnail", fontSize = 11.sp)
+                        }
+
+                        if (thumbnail.isNotEmpty()) {
+                            OutlinedButton(
+                                onClick = { thumbnail = "" },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcRedPrimary)
+                            ) {
+                                Text("Clear", fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+
+                if (thumbnail.isNotEmpty()) {
+                    item {
+                        AsyncImage(
+                            model = thumbnail,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(90.dp)
+                                .clip(RoundedCornerShape(6.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Video Title *") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("input_video_title"),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcRedPrimary,
+                            focusedLabelColor = EtfcRedPrimary
+                        )
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = fightersText,
+                        onValueChange = { fightersText = it },
+                        label = { Text("Fighters / Subtitle (e.g. Sedo vs Jhonny)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcRedPrimary,
+                            focusedLabelColor = EtfcRedPrimary
+                        )
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = duration,
+                        onValueChange = { duration = it },
+                        label = { Text("Duration (e.g. 15:30)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcRedPrimary,
+                            focusedLabelColor = EtfcRedPrimary
+                        )
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        val video = PreviousFightVideo(
+                        val video = (existingVideo ?: PreviousFightVideo(
                             id = "vid_${UUID.randomUUID().toString().take(6)}",
                             title = title,
                             subtitle = fightersText,
@@ -2689,13 +3168,20 @@ fun AddVideoDialog(
                             fileSizeMb = 150,
                             thumbnailUrl = thumbnail,
                             youtubeVideoId = videoUrlOrId.takeIf { !it.contains("http") } ?: "73P6qS14uP0"
+                        )).copy(
+                            title = title,
+                            subtitle = fightersText,
+                            durationText = duration,
+                            thumbnailUrl = thumbnail,
+                            youtubeVideoId = if (videoUrlOrId.isNotBlank() && !videoUrlOrId.contains("http")) videoUrlOrId else existingVideo?.youtubeVideoId ?: "73P6qS14uP0"
                         )
-                        onAddVideo(video)
+                        onSave(video)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = EtfcRedPrimary, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = EtfcRedPrimary, contentColor = Color.White),
+                modifier = Modifier.testTag("btn_save_video_dialog")
             ) {
-                Text("SAVE VIDEO", fontWeight = FontWeight.Black)
+                Text(if (isEditMode) "UPDATE VIDEO" else "SAVE VIDEO", fontWeight = FontWeight.Black)
             }
         },
         dismissButton = {
@@ -2705,15 +3191,18 @@ fun AddVideoDialog(
 }
 
 @Composable
-fun AddNewsDialog(
+fun NewsAddEditDialog(
+    existingArticle: NewsArticle?,
     onDismiss: () -> Unit,
-    onAddNews: (NewsArticle) -> Unit
+    onSave: (NewsArticle) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var summary by remember { mutableStateOf("") }
-    var fullContent by remember { mutableStateOf("") }
-    var author by remember { mutableStateOf("ETFC Media Team") }
-    var bannerUriString by remember { mutableStateOf("") }
+    val isEditMode = existingArticle != null
+
+    var title by remember { mutableStateOf(existingArticle?.title ?: "") }
+    var summary by remember { mutableStateOf(existingArticle?.summary ?: "") }
+    var fullContent by remember { mutableStateOf(existingArticle?.fullContent ?: "") }
+    var author by remember { mutableStateOf(existingArticle?.author ?: "ETFC Media Team") }
+    var bannerUriString by remember { mutableStateOf(existingArticle?.imageUrl ?: "") }
 
     val pickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -2724,37 +3213,133 @@ fun AddNewsDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = EtfcCard,
-        title = { Text("Add News Announcement", fontWeight = FontWeight.Black, color = EtfcGold) },
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = if (isEditMode) Icons.Default.Edit else Icons.Default.PostAdd,
+                    contentDescription = null,
+                    tint = EtfcGold
+                )
+                Text(
+                    text = if (isEditMode) "Edit News Announcement" else "Add News Announcement",
+                    fontWeight = FontWeight.Black,
+                    color = EtfcGold,
+                    fontSize = 18.sp
+                )
+            }
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { pickerLauncher.launch("image/*") },
-                    colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black)
-                ) {
-                    Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Pick Local Banner Image", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 450.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = { pickerLauncher.launch("image/*") },
+                            colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Pick Local Banner Image", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        if (bannerUriString.isNotEmpty()) {
+                            OutlinedButton(
+                                onClick = { bannerUriString = "" },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcRedPrimary)
+                            ) {
+                                Text("Clear", fontSize = 11.sp)
+                            }
+                        }
+                    }
                 }
 
                 if (bannerUriString.isNotEmpty()) {
-                    AsyncImage(
-                        model = bannerUriString,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(6.dp)),
-                        contentScale = ContentScale.Crop
+                    item {
+                        AsyncImage(
+                            model = bannerUriString,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(90.dp)
+                                .clip(RoundedCornerShape(6.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Headline Title *") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("input_news_title"),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
                     )
                 }
 
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Headline Title *") }, singleLine = true)
-                OutlinedTextField(value = summary, onValueChange = { summary = it }, label = { Text("Short Summary") }, maxLines = 2)
-                OutlinedTextField(value = fullContent, onValueChange = { fullContent = it }, label = { Text("Full Article Content") }, maxLines = 4)
+                item {
+                    OutlinedTextField(
+                        value = summary,
+                        onValueChange = { summary = it },
+                        label = { Text("Short Summary") },
+                        maxLines = 2,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = fullContent,
+                        onValueChange = { fullContent = it },
+                        label = { Text("Full Article Content") },
+                        maxLines = 4,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = author,
+                        onValueChange = { author = it },
+                        label = { Text("Author / Department") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedLabelColor = EtfcGold
+                        )
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        val article = NewsArticle(
+                        val article = (existingArticle ?: NewsArticle(
                             id = "news_${UUID.randomUUID().toString().take(6)}",
                             title = title,
                             summary = summary,
@@ -2766,13 +3351,20 @@ fun AddNewsDialog(
                             readTimeMinutes = 3,
                             imageUrl = bannerUriString.ifBlank { null },
                             isFeatured = true
+                        )).copy(
+                            title = title,
+                            summary = summary,
+                            fullContent = fullContent,
+                            author = author,
+                            imageUrl = bannerUriString.ifBlank { null }
                         )
-                        onAddNews(article)
+                        onSave(article)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black),
+                modifier = Modifier.testTag("btn_save_news_dialog")
             ) {
-                Text("PUBLISH", fontWeight = FontWeight.Black)
+                Text(if (isEditMode) "UPDATE ANNOUNCEMENT" else "PUBLISH", fontWeight = FontWeight.Black)
             }
         },
         dismissButton = {
