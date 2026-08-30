@@ -1,9 +1,11 @@
 package com.example.data.local
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -250,6 +252,33 @@ interface EtfcDao {
     @Query("UPDATE fighter_profiles SET bio = :bio, stance = :stance, signatureMove = :signatureMove, reachInches = :reachInches, heightCm = :heightCm WHERE fighterId = :fighterId")
     suspend fun updateFighterDetails(fighterId: String, bio: String, stance: String, signatureMove: String, reachInches: Int, heightCm: Int)
 
+    @Update
+    suspend fun updateFighterProfile(profile: FighterProfileEntity)
+
+    @Delete
+    suspend fun deleteFighterProfile(profile: FighterProfileEntity)
+
+    @Query("DELETE FROM fighter_profiles WHERE fighterId = :fighterId")
+    suspend fun deleteFighterProfileById(fighterId: String)
+
+    @Update
+    suspend fun updateHeroSlide(slide: HeroSlideEntity)
+
+    @Delete
+    suspend fun deleteHeroSlide(slide: HeroSlideEntity)
+
+    @Update
+    suspend fun updatePreviousVideo(video: PreviousVideoEntity)
+
+    @Delete
+    suspend fun deletePreviousVideo(video: PreviousVideoEntity)
+
+    @Update
+    suspend fun updateNewsArticle(article: NewsArticleEntity)
+
+    @Delete
+    suspend fun deleteNewsArticle(article: NewsArticleEntity)
+
     // ==========================================
     // OFFLINE SYNC ENGINE DAO (Fighter, Match, Announcement)
     // ==========================================
@@ -272,6 +301,12 @@ interface EtfcDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFighters(fighters: List<FighterEntity>)
+
+    @Update
+    suspend fun updateFighter(fighter: FighterEntity)
+
+    @Delete
+    suspend fun deleteFighterEntity(fighter: FighterEntity)
 
     @Query("DELETE FROM fighters WHERE id = :id")
     suspend fun deleteFighter(id: String)
@@ -298,6 +333,12 @@ interface EtfcDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMatches(matches: List<MatchEntity>)
 
+    @Update
+    suspend fun updateMatch(match: MatchEntity)
+
+    @Delete
+    suspend fun deleteMatchEntity(match: MatchEntity)
+
     @Query("DELETE FROM matches WHERE id = :id")
     suspend fun deleteMatch(id: String)
 
@@ -319,6 +360,12 @@ interface EtfcDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAnnouncements(announcements: List<AnnouncementEntity>)
+
+    @Update
+    suspend fun updateAnnouncement(announcement: AnnouncementEntity)
+
+    @Delete
+    suspend fun deleteAnnouncementEntity(announcement: AnnouncementEntity)
 
     @Query("DELETE FROM announcements WHERE id = :id")
     suspend fun deleteAnnouncement(id: String)

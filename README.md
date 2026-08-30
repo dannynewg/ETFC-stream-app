@@ -114,7 +114,8 @@ The project follows standard Android **Clean Architecture** and **MVVM (Model-Vi
 │   │   │   │   │   │   ├── FightCardScreen.kt    # Main card, prelims, voting predictions
 │   │   │   │   │   │   ├── FightersScreen.kt     # Division rosters, search, profile details
 │   │   │   │   │   │   ├── TicketsPpvScreen.kt   # Digital pass purchase, QR ticket wallet
-│   │   │   │   │   │   └── SettingsScreen.kt     # Profile, stream quality, audio commentary
+│   │   │   │   │   │   ├── SettingsScreen.kt     # Profile, stream quality, audio commentary
+│   │   │   │   │   │   └── AdminPanelScreen.kt   # Full-featured CMS: fighters, match cards, local image picker, and DB lifecycle
 │   │   │   │   │   ├── theme/
 │   │   │   │   │   │   ├── Color.kt              # ETFC Gold, Red Corner, Blue Corner, Obsidian
 │   │   │   │   │   │   ├── Theme.kt              # Material 3 dark color scheme & typography
@@ -203,16 +204,27 @@ The application includes a built-in role switcher for rapid testing and demonstr
 4. Enter your mobile number and tap **Confirm & Pay**.
 5. Once processed, an encrypted QR ticket is generated and stored in your local wallet for offline gate verification.
 
-### 6.3 Remote Content Sync (GitHub Admin Portal)
-Admins can dynamically publish new fight cards, banners, and video vault items without redeploying the APK:
-1. Switch your account role to **Admin**.
-2. Tap the **Admin CMS Desk** button in the top bar or inside the Home Screen.
-3. Enter the URL of a remote raw JSON file (e.g., from a GitHub repository):
-   ```
-   https://raw.githubusercontent.com/{owner}/{repo}/main/etfc_config.json
-   ```
-4. Tap **Fetch & Sync Live Config**.
-5. The app automatically fetches the JSON payload via Retrofit, parses it, and updates the local Room database, updating all active screens instantly.
+### 6.3 Admin CMS Portal & Full Database Lifecycle Management
+The application features a dedicated **Admin Panel & Content Management System (`AdminPanelScreen.kt`)** providing full lifecycle CRUD management (Create, Read, Update, Delete) across all core combat entities:
+
+1. **Accessing the CMS**:
+   - Tap the **Settings** tab -> **Open Admin Portal**, or tap the top bar **Shield / Admin Badge** when logged in with the Admin persona.
+2. **Athlete Roster Management (`🥊 Fighters` Tab)**:
+   - **Local File Image Picker**: Upload high-resolution athlete profile photos directly from the device's local photo gallery or file storage using the Android system `ActivityResultContracts.GetContent()` picker (no external URLs required).
+   - **Profile Customization**: Edit fighter full name, alias/nickname, nationality & flag emoji, weight division (Flyweight through Heavyweight), fighting stance (Orthodox/Southpaw/Switch), reach (inches), height (cm), comprehensive record (Wins, Losses, Draws, KOs, Submissions), signature techniques, and championship status.
+   - **Cross-Screen Reactive Propagation**: Changes made to any fighter profile immediately and automatically synchronize across the entire application—including the **Home Screen Hero Slider**, **Fight Card Bout Lineups**, **Tale of the Tape Head-to-Head Compare Screen**, **Live Arena Stream HUD**, and **Fighter Roster Directory**—powered by reactive Room database flows.
+3. **Fight Card & Bout Scheduling (`⚔️ Match Cards` Tab)**:
+   - Schedule new bouts by selecting Red and Blue corner combatants directly from the dynamic fighter database.
+   - Configure bout type (*Main Event*, *Co-Main Event*, *Featured Main Card*, *Prelims*), title championship stakes, scheduled rounds (3 or 5), arena venue, and broadcast time.
+   - Upload custom fight night promotional poster images via local file picker.
+   - Live result declaration: declare bout winners (Red Corner, Blue Corner, Draw/No Contest) and official stoppage method (*KO/TKO*, *Submission*, *Unanimous Decision*, *Split Decision*).
+4. **Hero Banners, Archive Videos & Press Releases**:
+   - Manage sliding hero banners on the Home Screen with custom promo artwork.
+   - Ingest YouTube fight replays and highlight clips with automatic oEmbed metadata resolution.
+   - Publish official news releases, press statements, and weigh-in announcements with local banner images.
+5. **GitHub Repository Sync & JSON Engine**:
+   - **Export Database to JSON**: Export the complete SQLite database state into a portable, version-controlled JSON schema.
+   - **Import & Remote Ingestion**: Parse and upsert remote or local JSON payloads directly into Room tables with zero downtime.
 
 ---
 

@@ -47,6 +47,7 @@ import com.example.data.security.SecurityUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -92,9 +93,146 @@ class EtfcRepository(private val dao: EtfcDao) {
         } else list
     }
 
+    val youTubeService = com.example.data.remote.YouTubeService()
+
+    val dynamicFighters: Flow<List<Fighter>> = combine(
+        dao.getAllFighterProfiles(),
+        dao.getAllFighters()
+    ) { profiles, fighterEntities ->
+        val profileMap = profiles.associateBy { it.fighterId }
+        val entityMap = fighterEntities.associateBy { it.id }
+
+        // Start with default template fighters and merge any Room updates
+        val baseList = fighters.map { base ->
+            val p = profileMap[base.id]
+            val e = entityMap[base.id]
+            val division = p?.division?.let { divLabel ->
+                WeightClass.entries.firstOrNull { it.label.equals(divLabel, ignoreCase = true) }
+            } ?: e?.division?.let { divLabel ->
+                WeightClass.entries.firstOrNull { it.label.equals(divLabel, ignoreCase = true) }
+            } ?: base.division
+
+            base.copy(
+                name = p?.name ?: e?.name ?: base.name,
+                nickname = p?.nickname ?: e?.nickname ?: base.nickname,
+                countryName = p?.countryName ?: e?.country ?: base.countryName,
+                flagEmoji = p?.flagEmoji ?: e?.flagEmoji ?: base.flagEmoji,
+                division = division,
+                stance = p?.stance ?: e?.stance ?: base.stance,
+                reachInches = p?.reachInches ?: e?.reachInches ?: base.reachInches,
+                heightCm = p?.heightCm ?: e?.heightCm ?: base.heightCm,
+                isChampion = p?.isChampion ?: e?.isChampion ?: base.isChampion,
+                rank = p?.rank ?: e?.rank ?: base.rank,
+                bio = p?.bio ?: e?.bio ?: base.bio,
+                signatureMove = p?.signatureMove ?: e?.signatureMove ?: base.signatureMove,
+                primaryColorHex = p?.primaryColorHex ?: e?.primaryColorHex ?: base.primaryColorHex,
+                photoUrl = p?.photoUrl ?: e?.photoUrl ?: base.photoUrl,
+                wins = e?.wins ?: base.wins,
+                losses = e?.losses ?: base.losses,
+                draws = e?.draws ?: base.draws,
+                kos = e?.kos ?: base.kos,
+                submissions = e?.submissions ?: base.submissions
+            )
+        }.toMutableList()
+
+        // Also add any new fighters created dynamically in DB that aren't in baseList
+        val existingIds = baseList.map { it.id }.toSet()
+        fighterEntities.filter { it.id !in existingIds }.forEach { e ->
+            val p = profileMap[e.id]
+            val div = WeightClass.entries.firstOrNull { it.label.equals(p?.division ?: e.division, ignoreCase = true) } ?: WeightClass.MIDDLEWEIGHT
+            baseList.add(
+                Fighter(
+                    id = e.id,
+                    name = p?.name ?: e.name,
+                    nickname = p?.nickname ?: e.nickname,
+                    countryName = p?.countryName ?: e.country,
+                    flagEmoji = p?.flagEmoji ?: e.flagEmoji,
+                    division = div,
+                    wins = e.wins,
+                    losses = e.losses,
+                    draws = e.draws,
+                    kos = e.kos,
+                    submissions = e.submissions,
+                    strikeAccuracyPercent = 65,
+                    takedownDefensePercent = 75,
+                    reachInches = p?.reachInches ?: e.reachInches,
+                    heightCm = p?.heightCm ?: e.heightCm,
+                    stance = p?.stance ?: e.stance,
+                    isChampion = p?.isChampion ?: e.isChampion,
+                    rank = p?.rank ?: e.rank ?: 1,
+                    bio = p?.bio ?: e.bio,
+                    signatureMove = p?.signatureMove ?: e.signatureMove,
+                    primaryColorHex = p?.primaryColorHex ?: e.primaryColorHex,
+                    photoUrl = p?.photoUrl ?: e.photoUrl
+                )
+            )
+        }
+
+        // Add any profiles that aren't in baseList yet
+        val allCurrentIds = baseList.map { it.id }.toSet()
+        profiles.filter { it.fighterId !in allCurrentIds }.forEach { p ->
+            val div = WeightClass.entries.firstOrNull { it.label.equals(p.division, ignoreCase = true) } ?: WeightClass.MIDDLEWEIGHT
+            baseList.add(
+                Fighter(
+                    id = p.fighterId,
+                    name = p.name,
+                    nickname = p.nickname,
+                    countryName = p.countryName,
+                    flagEmoji = p.flagEmoji,
+                    division = div,
+                    wins = 5,
+                    losses = 0,
+                    draws = 0,
+                    kos = 3,
+                    submissions = 1,
+                    strikeAccuracyPercent = 65,
+                    takedownDefensePercent = 80,
+                    reachInches = p.reachInches,
+                    heightCm = p.heightCm,
+                    stance = p.stance,
+                    isChampion = p.isChampion,
+                    rank = p.rank,
+                    bio = p.bio,
+                    signatureMove = p.signatureMove,
+                    primaryColorHex = p.primaryColorHex,
+                    photoUrl = p.photoUrl
+                )
+            )
+        }
+
+        baseList
+    }
+
+    val dynamicMatches: Flow<List<Bout>> = combine(
+        dao.getAllMatches(),
+        dynamicFighters
+    ) { entities, currentFighters ->
+        if (entities.isEmpty()) {
+            currentEventBouts.map { bout ->
+                val updatedRed = currentFighters.find { it.id == bout.fighterRed.id || it.name.equals(bout.fighterRed.name, ignoreCase = true) } ?: bout.fighterRed
+                val updatedBlue = currentFighters.find { it.id == bout.fighterBlue.id || it.name.equals(bout.fighterBlue.name, ignoreCase = true) } ?: bout.fighterBlue
+                bout.copy(fighterRed = updatedRed, fighterBlue = updatedBlue)
+            }
+        } else {
+            entities.map { it.toBout(currentFighters) }
+        }
+    }
+
     // Dynamic Content Flows (Populated from SQLite Room and Synced with GitHub Admin)
-    val dynamicHeroSlides: Flow<List<HeroSlide>> = dao.getAllHeroSlides().map { entities ->
-        if (entities.isEmpty()) heroSlides else entities.map { it.toModel() }
+    val dynamicHeroSlides: Flow<List<HeroSlide>> = combine(
+        dao.getAllHeroSlides(),
+        dynamicFighters
+    ) { entities, currentFighters ->
+        val baseSlides = if (entities.isEmpty()) heroSlides else entities.map { it.toModel() }
+        baseSlides.map { slide ->
+            val redFighter = currentFighters.find { it.name.equals(slide.redFighterName, ignoreCase = true) }
+            val blueFighter = currentFighters.find { it.name.equals(slide.blueFighterName, ignoreCase = true) }
+            slide.copy(
+                redFlag = redFighter?.flagEmoji ?: slide.redFlag,
+                blueFlag = blueFighter?.flagEmoji ?: slide.blueFlag,
+                posterImageUrl = if (!slide.posterImageUrl.isNullOrBlank()) slide.posterImageUrl else redFighter?.photoUrl ?: blueFighter?.photoUrl
+            )
+        }
     }
 
     val dynamicPreviousVideos: Flow<List<PreviousFightVideo>> = dao.getAllPreviousVideos().map { entities ->
@@ -103,57 +241,6 @@ class EtfcRepository(private val dao: EtfcDao) {
 
     val dynamicNewsArticles: Flow<List<NewsArticle>> = dao.getAllNewsArticles().map { entities ->
         if (entities.isEmpty()) newsArticles else entities.map { it.toModel() }
-    }
-
-    val dynamicFighters: Flow<List<Fighter>> = dao.getAllFighterProfiles().map { profiles ->
-        if (profiles.isEmpty()) fighters else {
-            profiles.map { profile ->
-                val base = fighters.firstOrNull { it.id == profile.fighterId }
-                if (base != null) {
-                    base.copy(
-                        name = profile.name,
-                        nickname = profile.nickname,
-                        countryName = profile.countryName,
-                        flagEmoji = profile.flagEmoji,
-                        division = WeightClass.entries.firstOrNull { it.label == profile.division } ?: base.division,
-                        stance = profile.stance,
-                        reachInches = profile.reachInches,
-                        heightCm = profile.heightCm,
-                        isChampion = profile.isChampion,
-                        rank = profile.rank,
-                        bio = profile.bio,
-                        signatureMove = profile.signatureMove,
-                        primaryColorHex = profile.primaryColorHex,
-                        photoUrl = profile.photoUrl
-                    )
-                } else {
-                    Fighter(
-                        id = profile.fighterId,
-                        name = profile.name,
-                        nickname = profile.nickname,
-                        countryName = profile.countryName,
-                        flagEmoji = profile.flagEmoji,
-                        division = WeightClass.entries.firstOrNull { it.label == profile.division } ?: WeightClass.MIDDLEWEIGHT,
-                        wins = 5,
-                        losses = 0,
-                        draws = 0,
-                        kos = 3,
-                        submissions = 1,
-                        strikeAccuracyPercent = 65,
-                        takedownDefensePercent = 80,
-                        reachInches = profile.reachInches,
-                        heightCm = profile.heightCm,
-                        stance = profile.stance,
-                        isChampion = profile.isChampion,
-                        rank = profile.rank,
-                        bio = profile.bio,
-                        signatureMove = profile.signatureMove,
-                        primaryColorHex = profile.primaryColorHex,
-                        photoUrl = profile.photoUrl
-                    )
-                }
-            }
-        }
     }
 
     // --- Fighter Meta-Engine Roster (ETFC 002: Adwa Fight Night) ---
@@ -2120,6 +2207,46 @@ class EtfcRepository(private val dao: EtfcDao) {
         dao.deleteNewsArticle(articleId)
     }
 
+    suspend fun saveFighter(fighter: Fighter) {
+        // Save to core fighters table
+        dao.insertFighter(fighter.toFighterEntity())
+        // Also save to fighter profiles table
+        val profile = FighterProfileEntity(
+            fighterId = fighter.id,
+            name = fighter.name,
+            nickname = fighter.nickname,
+            countryName = fighter.countryName,
+            flagEmoji = fighter.flagEmoji,
+            division = fighter.division.label,
+            stance = fighter.stance,
+            reachInches = fighter.reachInches,
+            heightCm = fighter.heightCm,
+            isChampion = fighter.isChampion,
+            rank = fighter.rank,
+            bio = fighter.bio,
+            signatureMove = fighter.signatureMove,
+            primaryColorHex = fighter.primaryColorHex,
+            hairStyle = fighter.hairStyle.name,
+            discipline = fighter.discipline.name,
+            lastUpdatedTimestamp = System.currentTimeMillis(),
+            photoUrl = fighter.photoUrl
+        )
+        dao.insertFighterProfile(profile)
+    }
+
+    suspend fun deleteFighter(fighterId: String) {
+        dao.deleteFighter(fighterId)
+        dao.deleteFighterProfileById(fighterId)
+    }
+
+    suspend fun saveMatchCard(bout: Bout, order: Int = 0) {
+        dao.insertMatch(bout.toMatchEntity(order = order))
+    }
+
+    suspend fun deleteMatchCard(matchId: String) {
+        dao.deleteMatch(matchId)
+    }
+
     suspend fun updateFighterProfile(
         fighterId: String,
         name: String,
@@ -2135,27 +2262,61 @@ class EtfcRepository(private val dao: EtfcDao) {
     ) {
         val existing = dao.getFighterProfileDirect(fighterId)
         val baseFighter = fighters.firstOrNull { it.id == fighterId }
+        val division = existing?.division ?: baseFighter?.division?.label ?: "Middleweight"
+        val rank = existing?.rank ?: baseFighter?.rank ?: 1
+        val isChampion = existing?.isChampion ?: baseFighter?.isChampion ?: false
+        val primaryColorHex = existing?.primaryColorHex ?: baseFighter?.primaryColorHex ?: 0xFFEF4444
+
         val updated = FighterProfileEntity(
             fighterId = fighterId,
             name = name,
             nickname = nickname,
             countryName = country,
             flagEmoji = flag,
-            division = existing?.division ?: baseFighter?.division?.label ?: "Middleweight",
+            division = division,
             stance = stance,
             reachInches = reachInches,
             heightCm = heightCm,
-            isChampion = existing?.isChampion ?: baseFighter?.isChampion ?: false,
-            rank = existing?.rank ?: baseFighter?.rank ?: 1,
+            isChampion = isChampion,
+            rank = rank,
             bio = bio,
             signatureMove = signatureMove,
-            primaryColorHex = existing?.primaryColorHex ?: baseFighter?.primaryColorHex ?: 0xFFEF4444,
+            primaryColorHex = primaryColorHex,
             hairStyle = existing?.hairStyle ?: baseFighter?.hairStyle?.name ?: "FADE_BEARD",
             discipline = existing?.discipline ?: baseFighter?.discipline?.name ?: "MMA",
             lastUpdatedTimestamp = System.currentTimeMillis(),
             photoUrl = photoUrl
         )
         dao.insertFighterProfile(updated)
+
+        // Also update Core FighterEntity
+        val existingFighter = dao.getFighterDirect(fighterId)
+        val updatedFighterEntity = FighterEntity(
+            id = fighterId,
+            name = name,
+            nickname = nickname,
+            division = division,
+            country = country,
+            flagEmoji = flag,
+            wins = existingFighter?.wins ?: baseFighter?.wins ?: 5,
+            losses = existingFighter?.losses ?: baseFighter?.losses ?: 0,
+            draws = existingFighter?.draws ?: baseFighter?.draws ?: 0,
+            kos = existingFighter?.kos ?: baseFighter?.kos ?: 3,
+            submissions = existingFighter?.submissions ?: baseFighter?.submissions ?: 1,
+            decisions = existingFighter?.decisions ?: 0,
+            isChampion = isChampion,
+            rank = rank,
+            reachInches = reachInches,
+            heightCm = heightCm,
+            stance = stance,
+            signatureMove = signatureMove,
+            bio = bio,
+            photoUrl = photoUrl,
+            primaryColorHex = primaryColorHex,
+            discipline = existing?.discipline ?: baseFighter?.discipline?.name ?: "MMA",
+            lastUpdated = System.currentTimeMillis()
+        )
+        dao.insertFighter(updatedFighterEntity)
     }
 
     // --- JSON Serialization for GitHub Repository Sync ---
@@ -2875,6 +3036,101 @@ fun NewsArticle.toAnnouncementEntity(): AnnouncementEntity {
     )
 }
 
+fun MatchEntity.toBout(allFighters: List<Fighter>): Bout {
+    val red = allFighters.firstOrNull { it.id == this.redFighterId || it.name.equals(this.redFighterName, ignoreCase = true) }
+        ?: Fighter(
+            id = this.redFighterId.ifBlank { "fighter_${this.id}_red" },
+            name = this.redFighterName,
+            nickname = "",
+            countryName = "Ethiopia",
+            flagEmoji = this.redFighterFlag.ifBlank { "🇪🇹" },
+            division = WeightClass.entries.firstOrNull { it.label.equals(this.division, ignoreCase = true) } ?: WeightClass.MIDDLEWEIGHT,
+            wins = 5,
+            losses = 1,
+            draws = 0,
+            kos = 3,
+            submissions = 1,
+            strikeAccuracyPercent = 65,
+            takedownDefensePercent = 75,
+            reachInches = 74,
+            heightCm = 180,
+            stance = "Orthodox",
+            isChampion = this.isTitleFight,
+            rank = 1,
+            bio = "ETFC Fighter",
+            signatureMove = "Hook",
+            primaryColorHex = 0xFFEF4444,
+            photoUrl = this.posterUrl
+        )
+
+    val blue = allFighters.firstOrNull { it.id == this.blueFighterId || it.name.equals(this.blueFighterName, ignoreCase = true) }
+        ?: Fighter(
+            id = this.blueFighterId.ifBlank { "fighter_${this.id}_blue" },
+            name = this.blueFighterName,
+            nickname = "",
+            countryName = "Ethiopia",
+            flagEmoji = this.blueFighterFlag.ifBlank { "🇪🇹" },
+            division = WeightClass.entries.firstOrNull { it.label.equals(this.division, ignoreCase = true) } ?: WeightClass.MIDDLEWEIGHT,
+            wins = 4,
+            losses = 2,
+            draws = 0,
+            kos = 2,
+            submissions = 1,
+            strikeAccuracyPercent = 60,
+            takedownDefensePercent = 70,
+            reachInches = 72,
+            heightCm = 178,
+            stance = "Southpaw",
+            isChampion = false,
+            rank = 2,
+            bio = "ETFC Challenger",
+            signatureMove = "Cross",
+            primaryColorHex = 0xFF3B82F6,
+            photoUrl = null
+        )
+
+    val bType = when {
+        this.isMainEvent -> BoutType.MAIN_EVENT
+        this.isCoMain -> BoutType.CO_MAIN
+        else -> BoutType.MAIN_CARD
+    }
+
+    val bStatus = try {
+        BoutStatus.valueOf(this.status.uppercase())
+    } catch (e: Exception) {
+        BoutStatus.UPCOMING
+    }
+
+    val div = WeightClass.entries.firstOrNull { it.label.equals(this.division, ignoreCase = true) } ?: WeightClass.MIDDLEWEIGHT
+
+    return Bout(
+        id = this.id,
+        eventName = this.eventName.ifBlank { "ETFC 002: Adwa Fight Night" },
+        eventVenue = this.venue.ifBlank { "Adwa 00 Museum — August 27" },
+        boutType = bType,
+        weightClass = div,
+        matchCategory = MatchCategory.MMA,
+        matchTitle = if (this.isTitleFight) "${div.label.uppercase()} TITLE BOUT" else "${div.label.uppercase()} BOUT",
+        fighterRed = red,
+        fighterBlue = blue,
+        isTitleFight = this.isTitleFight,
+        scheduledRounds = if (this.isTitleFight || this.isMainEvent) 5 else 3,
+        status = bStatus,
+        liveRound = 1,
+        liveClockSeconds = 300,
+        winnerId = this.winnerFighterId,
+        resultMethod = this.resultMethod,
+        redSignificantStrikes = 0,
+        blueSignificantStrikes = 0,
+        redTotalStrikes = 0,
+        blueTotalStrikes = 0,
+        redTakedowns = 0,
+        blueTakedowns = 0,
+        redControlTimeSec = 0,
+        blueControlTimeSec = 0
+    )
+}
+
 fun AnnouncementEntity.toModel(): NewsArticle {
     val cat = try {
         NewsCategory.valueOf(this.category)
@@ -2897,4 +3153,5 @@ fun AnnouncementEntity.toModel(): NewsArticle {
         imageUrl = this.imageUrl
     )
 }
+
 

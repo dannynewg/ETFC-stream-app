@@ -28,6 +28,7 @@ import com.example.data.models.StreamQuality
 import com.example.data.models.UserAccount
 import com.example.data.models.UserRole
 import com.example.data.models.VideoCategory
+import com.example.data.remote.YouTubeVideoMetadata
 import com.example.data.models.WeightClass
 import com.example.data.repository.EtfcRepository
 import kotlinx.coroutines.delay
@@ -145,6 +146,7 @@ data class EtfcUiState(
     val dynamicPreviousVideos: List<PreviousFightVideo> = emptyList(),
     val dynamicNewsArticles: List<NewsArticle> = emptyList(),
     val dynamicFighters: List<Fighter> = emptyList(),
+    val dynamicMatches: List<Bout> = emptyList(),
     val isSyncingGitHub: Boolean = false,
     val githubSyncStatusMessage: String? = null,
     val isAdminPortalOpen: Boolean = false,
@@ -170,6 +172,7 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
     val dynamicPreviousVideos: StateFlow<List<PreviousFightVideo>>
     val dynamicNewsArticles: StateFlow<List<NewsArticle>>
     val dynamicFighters: StateFlow<List<Fighter>>
+    val dynamicMatches: StateFlow<List<Bout>>
 
     val fighters: List<Fighter>
     val bouts: List<Bout>
@@ -222,6 +225,9 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
         dynamicFighters = repository.dynamicFighters
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), repository.fighters)
 
+        dynamicMatches = repository.dynamicMatches
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), repository.currentEventBouts)
+
         _uiState.value = _uiState.value.copy(
             selectedBout = bouts.firstOrNull(),
             selectedCdnNode = cdnNodes.firstOrNull(),
@@ -231,7 +237,8 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
             dynamicHeroSlides = repository.heroSlides,
             dynamicPreviousVideos = repository.previousVideos,
             dynamicNewsArticles = repository.newsArticles,
-            dynamicFighters = repository.fighters
+            dynamicFighters = repository.fighters,
+            dynamicMatches = repository.currentEventBouts
         )
 
         // Seed Meta-Engine, Users, Chat, and Dynamic Content in Room
@@ -258,7 +265,35 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             repository.dynamicFighters.collectLatest { fighterList ->
-                _uiState.value = _uiState.value.copy(dynamicFighters = fighterList)
+                val currentSelected = _uiState.value.selectedBout
+                val updatedSelectedBout = currentSelected?.let { bout ->
+                    val r = fighterList.find { it.id == bout.fighterRed.id || it.name.equals(bout.fighterRed.name, ignoreCase = true) } ?: bout.fighterRed
+                    val b = fighterList.find { it.id == bout.fighterBlue.id || it.name.equals(bout.fighterBlue.name, ignoreCase = true) } ?: bout.fighterBlue
+                    bout.copy(fighterRed = r, fighterBlue = b)
+                }
+                val updatedTaleRed = _uiState.value.taleFighterRed?.let { f ->
+                    fighterList.find { it.id == f.id || it.name.equals(f.name, ignoreCase = true) } ?: f
+                }
+                val updatedTaleBlue = _uiState.value.taleFighterBlue?.let { f ->
+                    fighterList.find { it.id == f.id || it.name.equals(f.name, ignoreCase = true) } ?: f
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    dynamicFighters = fighterList,
+                    selectedBout = updatedSelectedBout ?: _uiState.value.selectedBout,
+                    taleFighterRed = updatedTaleRed ?: _uiState.value.taleFighterRed,
+                    taleFighterBlue = updatedTaleBlue ?: _uiState.value.taleFighterBlue
+                )
+            }
+        }
+        viewModelScope.launch {
+            repository.dynamicMatches.collectLatest { matchList ->
+                val currentSelectedId = _uiState.value.selectedBout?.id
+                val updatedSelectedBout = matchList.find { it.id == currentSelectedId } ?: _uiState.value.selectedBout ?: matchList.firstOrNull()
+                _uiState.value = _uiState.value.copy(
+                    dynamicMatches = matchList,
+                    selectedBout = updatedSelectedBout
+                )
             }
         }
 
@@ -1201,6 +1236,12 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(adminSelectedTab = tabIndex)
     }
 
+    fun saveHeroSlide(slide: HeroSlide) = postMatchPromoPoster(slide)
+    fun deleteHeroSlide(slideId: String) = deleteMatchPromoPoster(slideId)
+    fun savePreviousVideo(video: PreviousFightVideo) = addPreviousFightVideo(video)
+    fun deletePreviousVideo(videoId: String) = deletePreviousFightVideo(videoId)
+    fun saveNewsAnnouncement(article: NewsArticle) = postNewsAnnouncement(article)
+
     fun postMatchPromoPoster(slide: HeroSlide, isPinned: Boolean = false) {
         viewModelScope.launch {
             repository.saveHeroSlide(slide, isPinned)
@@ -1252,6 +1293,49 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = _uiState.value.copy(
                 settingsSnackbarMessage = "🗑️ Announcement removed."
             )
+        }
+    }
+
+    fun saveFighter(fighter: Fighter) {
+        viewModelScope.launch {
+            repository.saveFighter(fighter)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "✅ Fighter saved to SQLite: ${fighter.name}"
+            )
+        }
+    }
+
+    fun deleteFighter(fighterId: String) {
+        viewModelScope.launch {
+            repository.deleteFighter(fighterId)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "🗑️ Fighter removed from roster."
+            )
+        }
+    }
+
+    fun saveMatchCard(bout: Bout, order: Int = 0) {
+        viewModelScope.launch {
+            repository.saveMatchCard(bout, order)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "✅ Match Card saved: ${bout.fighterRed.name} vs ${bout.fighterBlue.name}"
+            )
+        }
+    }
+
+    fun deleteMatchCard(matchId: String) {
+        viewModelScope.launch {
+            repository.deleteMatchCard(matchId)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "🗑️ Match Card removed."
+            )
+        }
+    }
+
+    fun fetchYouTubeMetadata(urlOrId: String, onResult: (YouTubeVideoMetadata?) -> Unit) {
+        viewModelScope.launch {
+            val result = repository.youTubeService.fetchVideoMetadata(urlOrId)
+            onResult(result.getOrNull())
         }
     }
 

@@ -170,6 +170,7 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
     val activePass by viewModel.activePass.collectAsState()
     val favoriteFighters by viewModel.favoriteFighters.collectAsState()
     val dynamicFighters by viewModel.dynamicFighters.collectAsState()
+    val dynamicMatches by viewModel.dynamicMatches.collectAsState()
 
     val currentRole = uiState.currentUser?.role ?: UserRole.GUEST
     val roleColor = Color(currentRole.colorHex)
@@ -546,7 +547,7 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
 
                 AppTab.FIGHT_CARD -> {
                     FightCardScreen(
-                        bouts = viewModel.bouts,
+                        bouts = dynamicMatches.ifEmpty { viewModel.bouts },
                         onSelectBoutForStream = {
                             viewModel.selectBout(it)
                             viewModel.selectTab(AppTab.LIVE_ARENA)
@@ -712,9 +713,14 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
 
     // 7. Admin & CMS Portal with GitHub & SQLite Sync
     if (uiState.isAdminPortalOpen) {
-        com.example.ui.components.AdminPortalDialog(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeAdminPortal() }
-        )
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { viewModel.closeAdminPortal() },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            com.example.ui.screens.AdminPanelScreen(
+                viewModel = viewModel,
+                onNavigateBack = { viewModel.closeAdminPortal() }
+            )
+        }
     }
 }
