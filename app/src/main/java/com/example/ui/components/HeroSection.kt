@@ -105,17 +105,22 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Sleek, high-contrast strip banner for ETFC 003 countdown & single PPV pass (600 ETB)
+ * Persistent Arena Event Banner for ETFC 003:
+ * Displays a live countdown timer, match details, and 'Buy Access' CTA.
+ * Only rendered when active events exist in the Firestore matches collection.
  */
 @Composable
 fun Etfc003LiveCountdownStripBanner(
     isPassUnlocked: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    eventName: String = "ETFC 003: Champions Collide",
+    venue: String = "Adwa Museum Arena, Addis Ababa",
+    targetTimestampMillis: Long = System.currentTimeMillis() + (90L * 24 * 3600 * 1000)
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "banner_pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
+        initialValue = 0.45f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
             animation = tween(800),
@@ -124,12 +129,17 @@ fun Etfc003LiveCountdownStripBanner(
         label = "pulse_alpha"
     )
 
-    // Countdown timer state (ETFC 003 scheduled 3 months from now: November 28, 2026)
-    var secondsRemaining by remember { mutableLongStateOf(86400L * 89 + 3600L * 18 + 60L * 42 + 25L) }
-    LaunchedEffect(Unit) {
+    // Calculate real remaining seconds down to target timestamp
+    var secondsRemaining by remember {
+        val diff = (targetTimestampMillis - System.currentTimeMillis()) / 1000L
+        mutableLongStateOf(if (diff > 0) diff else 86400L * 89 + 3600L * 18 + 60L * 42 + 25L)
+    }
+
+    LaunchedEffect(targetTimestampMillis) {
         while (secondsRemaining > 0L) {
             delay(1000L)
-            secondsRemaining -= 1L
+            val diff = (targetTimestampMillis - System.currentTimeMillis()) / 1000L
+            secondsRemaining = if (diff > 0) diff else 0L
         }
     }
 
@@ -140,79 +150,139 @@ fun Etfc003LiveCountdownStripBanner(
     val countdownText = String.format("%02dd : %02dh : %02dm : %02ds", days, hours, minutes, seconds)
 
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = EtfcSurface),
-        border = BorderStroke(1.dp, if (isPassUnlocked) EtfcSuccess else EtfcGold),
+        border = BorderStroke(1.2.dp, if (isPassUnlocked) EtfcSuccess else EtfcBorderGold),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .clickable { onClick() }
             .testTag("etfc003_strip_banner")
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            // Left: Title & Pulse
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = (if (isPassUnlocked) EtfcSuccess else EtfcGold).copy(alpha = pulseAlpha),
-                    modifier = Modifier.size(10.dp)
-                ) {}
+                // Left: Event Title & Pulsing Badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = (if (isPassUnlocked) EtfcSuccess else EtfcGold).copy(alpha = pulseAlpha),
+                        modifier = Modifier.size(10.dp)
+                    ) {}
 
-                Column {
-                    Text(
-                        text = "ETFC 003",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black,
-                        color = EtfcGold,
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = if (isPassUnlocked) "PPV ACCESS UNLOCKED" else "IN 3 MONTHS • NOV 28, 2026",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isPassUnlocked) EtfcSuccess else EtfcTextMuted
-                    )
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "ETFC 003",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Black,
+                                color = EtfcGold,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = EtfcCardInner
+                            ) {
+                                Text(
+                                    text = "3 MONTHS OUT",
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = EtfcGold,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (isPassUnlocked) "PPV ACCESS PASS ACTIVE" else "NOVEMBER 28, 2026 • ADWA ARENA",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isPassUnlocked) EtfcSuccess else EtfcTextMuted
+                        )
+                    }
+                }
+
+                // Right: Buy Access CTA Button
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isPassUnlocked) EtfcSuccess else EtfcGold,
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.clickable { onClick() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (!isPassUnlocked) {
+                            Icon(
+                                imageVector = Icons.Default.LocalActivity,
+                                contentDescription = null,
+                                tint = Color.Black,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Text(
+                            text = if (isPassUnlocked) "PASS ACTIVE" else "BUY ACCESS (600 ETB)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.Black
+                        )
+                    }
                 }
             }
 
-            // Center: Live Countdown Display
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color.Black,
-                border = BorderStroke(0.5.dp, EtfcBorderSubtle),
-                modifier = Modifier.padding(horizontal = 6.dp)
-            ) {
-                Text(
-                    text = countdownText,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Right: CTA Price Badge / Action Button
+            // Bottom Countdown Strip & Co-Main Highlight
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = if (isPassUnlocked) EtfcSuccess else EtfcGold,
-                modifier = Modifier.clickable { onClick() }
+                color = Color.Black.copy(alpha = 0.65f),
+                border = BorderStroke(0.5.dp, EtfcBorderSubtle),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = if (isPassUnlocked) "WATCH" else "600 ETB",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.Black,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = "Timer",
+                            tint = EtfcGold,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "FIGHT NIGHT IN",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            color = EtfcTextMuted,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+
+                    Text(
+                        text = countdownText,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        letterSpacing = 1.sp
+                    )
+                }
             }
         }
     }

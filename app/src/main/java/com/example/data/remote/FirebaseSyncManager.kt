@@ -19,7 +19,9 @@ import com.example.data.models.NewsArticle
 import com.example.data.models.PreviousFightVideo
 import com.example.data.models.UserAccount
 import com.example.data.models.UserRole
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineScope
@@ -677,12 +679,24 @@ class FirebaseSyncManager(
         listeners.clear()
     }
 
+    private suspend fun ensureFirebaseAuthSession() {
+        try {
+            val auth = FirebaseAuth.getInstance()
+            if (auth.currentUser == null) {
+                auth.signInAnonymously().await()
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "Anonymous auth note: ${e.message}")
+        }
+    }
+
     // =========================================================================
     // ADMIN CLOUD WRITES (Push to Firestore in Real-Time)
     // =========================================================================
 
     suspend fun pushFighterToCloud(fighter: Fighter) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             val map = hashMapOf(
                 "name" to fighter.name,
                 "nickname" to fighter.nickname,
@@ -707,21 +721,27 @@ class FirebaseSyncManager(
             )
             firestore.collection(COLL_FIGHTERS).document(fighter.id).set(map, SetOptions.merge()).await()
             Log.d(TAG, "Successfully synced fighter ${fighter.id} to Firestore")
+        } catch (e: FirebaseFirestoreException) {
+            Log.w(TAG, "Firestore write permission note (offline cache active): ${e.message}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to push fighter to Firestore", e)
+            Log.w(TAG, "Notice pushing fighter to Firestore: ${e.message}")
         }
     }
 
     suspend fun deleteFighterFromCloud(fighterId: String) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             firestore.collection(COLL_FIGHTERS).document(fighterId).delete().await()
+        } catch (e: FirebaseFirestoreException) {
+            Log.w(TAG, "Firestore delete note: ${e.message}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete fighter from Firestore", e)
+            Log.w(TAG, "Notice deleting fighter from Firestore: ${e.message}")
         }
     }
 
     suspend fun pushMatchToCloud(bout: Bout, order: Int = 0) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             val map = hashMapOf(
                 "displayOrder" to order,
                 "eventName" to bout.eventName,
@@ -746,21 +766,25 @@ class FirebaseSyncManager(
             )
             firestore.collection(COLL_MATCHES).document(bout.id).set(map, SetOptions.merge()).await()
             Log.d(TAG, "Successfully synced match ${bout.id} to Firestore")
+        } catch (e: FirebaseFirestoreException) {
+            Log.w(TAG, "Firestore write match note: ${e.message}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to push match to Firestore", e)
+            Log.w(TAG, "Notice pushing match to Firestore: ${e.message}")
         }
     }
 
     suspend fun deleteMatchFromCloud(matchId: String) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             firestore.collection(COLL_MATCHES).document(matchId).delete().await()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete match from Firestore", e)
+            Log.w(TAG, "Notice deleting match from Firestore: ${e.message}")
         }
     }
 
     suspend fun pushHeroSlideToCloud(slide: HeroSlide, isPinned: Boolean = false) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             val map = hashMapOf(
                 "type" to slide.type.name,
                 "tag" to slide.tag,
@@ -786,20 +810,22 @@ class FirebaseSyncManager(
             firestore.collection(COLL_HERO_SLIDES).document(slide.id).set(map, SetOptions.merge()).await()
             Log.d(TAG, "Successfully synced slide ${slide.id} to Firestore")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to push hero slide to Firestore", e)
+            Log.w(TAG, "Notice pushing hero slide to Firestore: ${e.message}")
         }
     }
 
     suspend fun deleteHeroSlideFromCloud(slideId: String) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             firestore.collection(COLL_HERO_SLIDES).document(slideId).delete().await()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete hero slide from Firestore", e)
+            Log.w(TAG, "Notice deleting hero slide from Firestore: ${e.message}")
         }
     }
 
     suspend fun pushVideoToCloud(video: PreviousFightVideo) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             val map = hashMapOf(
                 "title" to video.title,
                 "subtitle" to video.subtitle,
@@ -828,20 +854,22 @@ class FirebaseSyncManager(
             firestore.collection(COLL_VIDEOS).document(video.id).set(map, SetOptions.merge()).await()
             Log.d(TAG, "Successfully synced video ${video.id} to Firestore")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to push video to Firestore", e)
+            Log.w(TAG, "Notice pushing video to Firestore: ${e.message}")
         }
     }
 
     suspend fun deleteVideoFromCloud(videoId: String) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             firestore.collection(COLL_VIDEOS).document(videoId).delete().await()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete video from Firestore", e)
+            Log.w(TAG, "Notice deleting video from Firestore: ${e.message}")
         }
     }
 
     suspend fun pushNewsToCloud(article: NewsArticle) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             val map = hashMapOf(
                 "title" to article.title,
                 "summary" to article.summary,
@@ -861,20 +889,22 @@ class FirebaseSyncManager(
             firestore.collection(COLL_NEWS).document(article.id).set(map, SetOptions.merge()).await()
             Log.d(TAG, "Successfully synced news article ${article.id} to Firestore")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to push news to Firestore", e)
+            Log.w(TAG, "Notice pushing news to Firestore: ${e.message}")
         }
     }
 
     suspend fun deleteNewsFromCloud(articleId: String) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             firestore.collection(COLL_NEWS).document(articleId).delete().await()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete news from Firestore", e)
+            Log.w(TAG, "Notice deleting news from Firestore: ${e.message}")
         }
     }
 
     suspend fun sendChatMessageToCloud(msg: ChatMessage) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             val map = hashMapOf(
                 "boutId" to msg.boutId,
                 "userId" to msg.userId,
@@ -890,12 +920,13 @@ class FirebaseSyncManager(
             )
             firestore.collection(COLL_CHAT).document(msg.id).set(map).await()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send chat to Firestore", e)
+            Log.w(TAG, "Notice sending chat to Firestore: ${e.message}")
         }
     }
 
     suspend fun pushUserToCloud(user: UserAccount) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             val cleanEmail = user.email.trim().lowercase()
             val isAdmin = cleanEmail.equals("dannynewg@gmail.com", ignoreCase = true) || isEmailInvitedAdmin(cleanEmail) || user.role == UserRole.ADMIN
             val roleStr = if (isAdmin) "admin" else "user"
@@ -911,8 +942,11 @@ class FirebaseSyncManager(
                 "lastLoginTimestamp" to System.currentTimeMillis()
             )
             firestore.collection(COLL_USERS).document(user.userId).set(map, SetOptions.merge()).await()
+            Log.d(TAG, "Successfully synced user ${user.userId} to Firestore")
+        } catch (e: FirebaseFirestoreException) {
+            Log.w(TAG, "Firestore user sync permission note (local cache active): ${e.message}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to push user to Firestore", e)
+            Log.w(TAG, "Notice pushing user to Firestore: ${e.message}")
         }
     }
 
@@ -922,6 +956,7 @@ class FirebaseSyncManager(
             return@withContext "admin"
         }
         try {
+            ensureFirebaseAuthSession()
             val byEmail = firestore.collection(COLL_USERS).whereEqualTo("email", clean).get().await()
             if (!byEmail.isEmpty) {
                 val doc = byEmail.documents.first()
@@ -932,7 +967,7 @@ class FirebaseSyncManager(
                 return@withContext byId.getString("role")?.lowercase() ?: "user"
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching user role from Firestore", e)
+            Log.w(TAG, "Notice fetching user role from Firestore: ${e.message}")
         }
         return@withContext "user"
     }

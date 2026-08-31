@@ -138,6 +138,7 @@ fun HomeScreen(
     val activeBout = uiState.selectedBout ?: viewModel.bouts.firstOrNull()
 
     val heroSlides by viewModel.dynamicHeroSlides.collectAsState()
+    val dynamicMatches by viewModel.dynamicMatches.collectAsState()
     val previousVideos by viewModel.dynamicPreviousVideos.collectAsState()
     val newsArticles by viewModel.dynamicNewsArticles.collectAsState()
 
@@ -158,19 +159,25 @@ fun HomeScreen(
     ) {
         // =========================================================================
         // 1. ETFC 003 LIVE COUNTDOWN & 600 ETB PPV ACCESS STRIP BANNER
+        // (Renders only when active events exist in Firestore matches collection)
         // =========================================================================
-        item(key = "etfc003_strip_banner") {
-            Etfc003LiveCountdownStripBanner(
-                isPassUnlocked = userRole.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD),
-                onClick = {
-                    if (userRole.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD)) {
-                        viewModel.selectTab(AppTab.LIVE_ARENA)
-                    } else {
-                        val singleTier = viewModel.ppvTiers.firstOrNull()
-                        viewModel.openCheckoutDialog(singleTier)
+        if (dynamicMatches.isNotEmpty() || viewModel.bouts.isNotEmpty()) {
+            val primaryMatch = dynamicMatches.firstOrNull() ?: viewModel.bouts.firstOrNull()
+            item(key = "etfc003_strip_banner") {
+                Etfc003LiveCountdownStripBanner(
+                    isPassUnlocked = userRole.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD),
+                    eventName = primaryMatch?.eventName ?: "ETFC 003: Champions Collide",
+                    venue = primaryMatch?.eventVenue ?: "Adwa Museum Arena, Addis Ababa",
+                    onClick = {
+                        if (userRole.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD)) {
+                            viewModel.selectTab(AppTab.LIVE_ARENA)
+                        } else {
+                            val singleTier = viewModel.ppvTiers.firstOrNull()
+                            viewModel.openCheckoutDialog(singleTier)
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
         // =========================================================================

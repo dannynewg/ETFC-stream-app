@@ -135,8 +135,17 @@ interface EtfcDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertUsersIfNotExist(users: List<UserAccountEntity>)
 
+    @Query("DELETE FROM user_accounts WHERE email NOT IN ('dannynewg@gmail.com') AND userId NOT LIKE 'usr_admin_%'")
+    suspend fun purgeDemoUsers()
+
+    @Query("DELETE FROM user_accounts WHERE userId = :userId")
+    suspend fun deleteUser(userId: String)
+
     @Query("UPDATE user_accounts SET role = :newRole WHERE userId = :userId")
     suspend fun updateUserRole(userId: String, newRole: String)
+
+    @Query("UPDATE user_accounts SET displayName = :displayName, handle = :handle, phoneNumber = :phoneNumber, countryCode = :countryCode, flagEmoji = :flagEmoji WHERE userId = :userId")
+    suspend fun updateUserDetails(userId: String, displayName: String, handle: String, phoneNumber: String, countryCode: String, flagEmoji: String)
 
     @Query("UPDATE user_accounts SET lastLoginTimestamp = :timestamp, authToken = :token WHERE userId = :userId")
     suspend fun updateLastLogin(userId: String, timestamp: Long, token: String)

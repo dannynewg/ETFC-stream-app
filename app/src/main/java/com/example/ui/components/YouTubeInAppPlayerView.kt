@@ -4,7 +4,10 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
+import android.view.View
 import android.view.ViewGroup
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -658,57 +661,115 @@ fun YouTubeEmbeddedPlayer(
         """.trimIndent()
     }
 
-    AndroidView(
-        factory = { ctx ->
-            WebView(ctx).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                setBackgroundColor(0xFF07090E.toInt())
-                settings.apply {
-                    javaScriptEnabled = true
-                    domStorageEnabled = true
-                    mediaPlaybackRequiresUserGesture = false
-                    loadWithOverviewMode = true
-                    useWideViewPort = true
-                    allowFileAccess = false
-                    cacheMode = WebSettings.LOAD_DEFAULT
-                    mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                }
-                webChromeClient = WebChromeClient()
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        onPageFinished()
-                    }
+    var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+    var hasRendererCrashed by remember { mutableStateOf(false) }
 
-                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                        val requestUrl = request?.url?.toString() ?: return false
-                        return if (requestUrl.contains("youtube.com") || requestUrl.contains("youtu.be")) {
-                            false // Load within webview
-                        } else {
+    if (hasRendererCrashed) {
+        Box(
+            modifier = modifier
+                .background(Color.Black)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Player recovery mode active",
+                    color = EtfcGold,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Button(
+                    onClick = {
+                        hasRendererCrashed = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = EtfcGold)
+                ) {
+                    Text("Retry Playback", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    } else {
+        AndroidView(
+            factory = { ctx ->
+                WebView(ctx).apply {
+                    webViewInstance = this
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    setBackgroundColor(0xFF07090E.toInt())
+                    try {
+                        setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                    } catch (_: Exception) {
+                        try {
+                            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+                        } catch (_: Exception) {}
+                    }
+                    settings.apply {
+                        javaScriptEnabled = true
+                        domStorageEnabled = true
+                        mediaPlaybackRequiresUserGesture = false
+                        loadWithOverviewMode = true
+                        useWideViewPort = true
+                        allowFileAccess = false
+                        cacheMode = WebSettings.LOAD_DEFAULT
+                        mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                    }
+                    webChromeClient = WebChromeClient()
+                    webViewClient = object : WebViewClient() {
+                        override fun onPageFinished(view: WebView?, url: String?) {
+                            super.onPageFinished(view, url)
+                            onPageFinished()
+                        }
+
+                        override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                            Log.w("YouTubePlayer", "Renderer process gone detected, recovering safely: didCrash=${detail?.didCrash()}")
+                            hasRendererCrashed = true
                             try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
-                                ctx.startActivity(intent)
+                                view?.destroy()
                             } catch (_: Exception) {}
-                            true
+                            return true
+                        }
+
+                        override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                            val requestUrl = request?.url?.toString() ?: return false
+                            return if (requestUrl.contains("youtube.com") || requestUrl.contains("youtu.be") || requestUrl.contains("youtube-nocookie.com")) {
+                                false // Load within webview
+                            } else {
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
+                                    ctx.startActivity(intent)
+                                } catch (_: Exception) {}
+                                true
+                            }
                         }
                     }
+                    tag = embedUrl
+                    loadDataWithBaseURL("https://www.youtube-nocookie.com", htmlData, "text/html", "UTF-8", null)
+                    onWebViewCreated(this)
                 }
-                loadDataWithBaseURL("https://www.youtube-nocookie.com", htmlData, "text/html", "UTF-8", null)
-                onWebViewCreated(this)
-            }
-        },
-        update = { webView ->
-            webView.loadDataWithBaseURL("https://www.youtube-nocookie.com", htmlData, "text/html", "UTF-8", null)
-        },
-        modifier = modifier
-    )
+            },
+            update = { webView ->
+                if (webView.tag != embedUrl) {
+                    webView.tag = embedUrl
+                    webView.loadDataWithBaseURL("https://www.youtube-nocookie.com", htmlData, "text/html", "UTF-8", null)
+                }
+            },
+            modifier = modifier
+        )
+    }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(embedUrl) {
         onDispose {
-            // Clean up handled when dialog closes
+            try {
+                webViewInstance?.stopLoading()
+                webViewInstance?.loadUrl("about:blank")
+                webViewInstance?.destroy()
+                webViewInstance = null
+            } catch (_: Exception) {}
         }
     }
 }

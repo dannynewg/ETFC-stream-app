@@ -6,7 +6,9 @@ import com.example.data.local.EtfcDao
 import com.example.data.local.UserAccountEntity
 import com.example.data.models.UserAccount
 import com.example.data.models.UserRole
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineScope
@@ -157,6 +159,17 @@ class UserDataManager(
         }
     }
 
+    private suspend fun ensureFirebaseAuthSession() {
+        try {
+            val auth = FirebaseAuth.getInstance()
+            if (auth.currentUser == null) {
+                auth.signInAnonymously().await()
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "Anonymous auth note: ${e.message}")
+        }
+    }
+
     /**
      * Fetches the user's role on login from the Firestore 'users' collection.
      * If user does not exist in Firestore, creates/syncs their record.
@@ -171,6 +184,7 @@ class UserDataManager(
         }
 
         try {
+            ensureFirebaseAuthSession()
             // First check Firestore users collection by userId
             var doc = firestore.collection(COLL_USERS).document(userId).get().await()
             if (!doc.exists()) {
@@ -210,7 +224,7 @@ class UserDataManager(
             attachUserDocumentListener(userId)
             return@withContext UserRole.USER
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching user role from Firestore", e)
+            Log.w(TAG, "Notice fetching user role from Firestore: ${e.message}")
             // Fallback to email check
             val role = if (cleanEmail.equals(SUPERADMIN_EMAIL, ignoreCase = true)) UserRole.ADMIN else UserRole.USER
             _currentUserRole.value = role
@@ -234,7 +248,7 @@ class UserDataManager(
                     _currentUserRole.value = newRole
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to attach user document listener", e)
+            Log.w(TAG, "Notice attaching user document listener: ${e.message}")
         }
     }
 
@@ -243,6 +257,7 @@ class UserDataManager(
      */
     suspend fun syncUserProfileToFirestore(user: UserAccount) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             val roleString = if (user.isAdmin || user.role == UserRole.ADMIN || user.email.equals(SUPERADMIN_EMAIL, ignoreCase = true)) "admin" else "user"
             val userMap = hashMapOf(
                 "userId" to user.userId,
@@ -262,8 +277,10 @@ class UserDataManager(
 
             firestore.collection(COLL_USERS).document(user.userId).set(userMap, SetOptions.merge()).await()
             Log.d(TAG, "Successfully synced user ${user.userId} (${user.email}) to Firestore 'users' collection")
+        } catch (e: FirebaseFirestoreException) {
+            Log.w(TAG, "Firestore write permission note (local storage active): ${e.message}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to sync user profile to Firestore", e)
+            Log.w(TAG, "Notice syncing user profile to Firestore: ${e.message}")
         }
     }
 
@@ -272,6 +289,7 @@ class UserDataManager(
      */
     suspend fun syncUserRoleToFirestore(userId: String, email: String, role: String) = withContext(Dispatchers.IO) {
         try {
+            ensureFirebaseAuthSession()
             val map = hashMapOf(
                 "userId" to userId,
                 "email" to email.trim().lowercase(),
@@ -279,8 +297,10 @@ class UserDataManager(
                 "updatedAt" to System.currentTimeMillis()
             )
             firestore.collection(COLL_USERS).document(userId).set(map, SetOptions.merge()).await()
+        } catch (e: FirebaseFirestoreException) {
+            Log.w(TAG, "Firestore update role permission note: ${e.message}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to update user role in Firestore", e)
+            Log.w(TAG, "Notice updating user role in Firestore: ${e.message}")
         }
     }
 

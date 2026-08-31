@@ -95,11 +95,9 @@ fun AuthDialog(
     isVisible: Boolean,
     currentTab: Int,
     errorMessage: String?,
-    demoUsers: List<UserAccount>,
     onTabSelected: (Int) -> Unit,
     onLogin: (identifier: String, password: String) -> Unit,
     onRegister: (email: String, handle: String, name: String, pass: String, phone: String, code: String, flag: String) -> Unit,
-    onQuickSwitchUser: (UserAccount) -> Unit,
     onDismiss: () -> Unit
 ) {
     if (!isVisible) return
@@ -305,73 +303,6 @@ fun AuthDialog(
                     ) {
                         Text("SIGN IN TO ETFC", fontWeight = FontWeight.Bold, fontSize = 13.sp, letterSpacing = 0.5.sp)
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Fast Demo Accounts 1-Tap Switcher
-                    Text(
-                        text = "QUICK TEST DEMO ACCOUNTS (1-TAP RBAC):",
-                        color = EtfcTextMuted,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        demoUsers.take(4).forEach { demo ->
-                            val roleColor = Color(demo.role.colorHex)
-                            Surface(
-                                color = EtfcCardInner,
-                                shape = RoundedCornerShape(8.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, roleColor.copy(alpha = 0.4f)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onQuickSwitchUser(demo) }
-                                    .testTag("quick_login_${demo.handle.removePrefix("@")}")
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Text(text = demo.role.badgeEmoji, fontSize = 14.sp)
-                                        Column {
-                                            Text(
-                                                text = "${demo.displayName} (${demo.handle})",
-                                                color = EtfcTextPrimary,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = "Role: ${demo.role.label}",
-                                                color = roleColor,
-                                                fontSize = 10.sp
-                                            )
-                                        }
-                                    }
-                                    Surface(
-                                        color = roleColor.copy(alpha = 0.15f),
-                                        shape = RoundedCornerShape(6.dp),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, roleColor.copy(alpha = 0.6f))
-                                    ) {
-                                        Text(
-                                            text = demo.role.badgeTitle,
-                                            color = roleColor,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
                 } else {
                     // CREATE ACCOUNT FORM
                     LazyColumn(
@@ -503,9 +434,7 @@ fun AuthDialog(
 fun UserProfileDrawer(
     isVisible: Boolean,
     currentUser: UserAccount?,
-    demoUsers: List<UserAccount>,
     onUpgradeRole: (UserRole) -> Unit,
-    onQuickSwitchUser: (UserAccount) -> Unit,
     onOpenAuthDialog: () -> Unit,
     onLogout: () -> Unit,
     onDismiss: () -> Unit,
@@ -602,7 +531,7 @@ fun UserProfileDrawer(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // RBAC Access Overview Card
+            // User Details & Firebase Auth Info Card
             Card(
                 colors = CardDefaults.cardColors(containerColor = EtfcCardInner),
                 shape = RoundedCornerShape(12.dp),
@@ -611,7 +540,7 @@ fun UserProfileDrawer(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "ROLE-BASED ACCESS CONTROL (RBAC):",
+                        text = "AUTHENTICATED PROFILE DETAILS:",
                         color = EtfcGold,
                         fontWeight = FontWeight.Bold,
                         fontSize = 10.sp,
@@ -620,12 +549,34 @@ fun UserProfileDrawer(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Email:", color = EtfcTextMuted, fontSize = 11.sp)
+                        Text(currentUser?.email ?: "guest@etfc.stream", color = EtfcTextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    if (!currentUser?.phoneNumber.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Phone:", color = EtfcTextMuted, fontSize = 11.sp)
+                            Text(currentUser?.phoneNumber ?: "", color = EtfcTextPrimary, fontSize = 11.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Divider(color = EtfcBorderSubtle)
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     val tiers = listOf(
                         ContentTier.FREE_PRELIMS to "Free Prelims & Audio",
                         ContentTier.STANDARD_PPV_MAIN_CARD to "PPV Main Card (1080p)",
                         ContentTier.VIP_RINGSIDE_EXCLUSIVE to "VIP Multi-Cam & Ref Cam",
-                        ContentTier.OFFLINE_VAULT to "Offline Match Downloads",
-                        ContentTier.MODERATION_TOOLS to "Live Chat Mod Shield"
+                        ContentTier.OFFLINE_VAULT to "Offline Match Downloads"
                     )
 
                     tiers.forEach { (tier, label) ->
@@ -633,7 +584,7 @@ fun UserProfileDrawer(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 3.dp),
+                                .padding(vertical = 2.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -650,70 +601,6 @@ fun UserProfileDrawer(
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Security Token preview
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Session Auth Token:", color = EtfcTextMuted, fontSize = 9.sp)
-                        Text(
-                            text = currentUser?.authToken?.take(22)?.plus("...") ?: "ANONYMOUS",
-                            color = EtfcBlueCorner,
-                            fontSize = 9.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Quick Role Switcher (for testing & demo purposes)
-            Text(
-                text = "SWITCH ACTIVE PROFILE / ROLE:",
-                color = EtfcTextMuted,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                demoUsers.take(4).forEach { demo ->
-                    val isCurrent = demo.userId == currentUser?.userId
-                    val roleColor = Color(demo.role.colorHex)
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isCurrent) roleColor.copy(alpha = 0.2f) else EtfcCardInner,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isCurrent) roleColor else EtfcBorderSubtle
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onQuickSwitchUser(demo) }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(text = demo.role.badgeEmoji, fontSize = 16.sp)
-                            Text(
-                                text = demo.role.badgeTitle.take(6),
-                                color = if (isCurrent) roleColor else EtfcTextPrimary,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold
-                            )
                         }
                     }
                 }

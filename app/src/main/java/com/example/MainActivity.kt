@@ -177,22 +177,30 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
     val dynamicFighters by viewModel.dynamicFighters.collectAsState()
     val dynamicMatches by viewModel.dynamicMatches.collectAsState()
 
-    // 1. Initial Launch Splash Screen
+    // 1. Initial Launch Splash Screen with Firebase Auth Check
     if (!isSplashFinished) {
-        SplashScreen(onSplashFinished = { isSplashFinished = true })
-        return
-    }
-
-    // 2. First-time Install Sign In / Sign Up Gate
-    if (!hasCompletedFirstTimeOnboarding && uiState.currentUser == null) {
-        OnboardingAuthScreen(
-            viewModel = viewModel,
-            onDismiss = { hasCompletedFirstTimeOnboarding = true }
+        val isAuthenticated = uiState.currentUser != null
+        SplashScreen(
+            onNavigateToHome = {
+                isSplashFinished = true
+            },
+            onNavigateToAuth = {
+                isSplashFinished = true
+            },
+            isUserAuthenticated = isAuthenticated
         )
         return
     }
 
-    val currentRole = uiState.currentUser?.role ?: UserRole.GUEST
+    // 2. Unified Sign In / Sign Up Gate (Strict: Must be authenticated via Firebase)
+    if (uiState.currentUser == null) {
+        OnboardingAuthScreen(
+            viewModel = viewModel
+        )
+        return
+    }
+
+    val currentRole = uiState.currentUser?.role ?: UserRole.USER
     val roleColor = Color(currentRole.colorHex)
 
     Scaffold(
@@ -677,9 +685,7 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
     UserProfileDrawer(
         isVisible = uiState.isProfileDrawerVisible,
         currentUser = uiState.currentUser,
-        demoUsers = uiState.allDemoUsers,
         onUpgradeRole = { viewModel.upgradeCurrentUserRole(it) },
-        onQuickSwitchUser = { viewModel.quickSwitchUser(it) },
         onOpenAuthDialog = {
             viewModel.closeProfileDrawer()
             viewModel.openAuthDialog()

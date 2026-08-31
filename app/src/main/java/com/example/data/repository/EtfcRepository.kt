@@ -1313,7 +1313,10 @@ class EtfcRepository(
     // =========================================================
 
     suspend fun seedDefaultUsersAndChatIfNeeded(primaryBoutId: String = "bout_sedo_jhonny") {
-        val demoUsers = listOf(
+        // Purge all legacy demo user accounts and retain only the real admin account
+        dao.purgeDemoUsers()
+
+        val adminUser = listOf(
             UserAccountEntity(
                 userId = "usr_admin_danny",
                 email = "dannynewg@gmail.com",
@@ -1327,52 +1330,10 @@ class EtfcRepository(
                 authToken = SecurityUtils.generateAuthToken("usr_admin_danny", UserRole.ADMIN.name),
                 createdTimestamp = System.currentTimeMillis() - 86400000L * 90,
                 lastLoginTimestamp = System.currentTimeMillis()
-            ),
-            UserAccountEntity(
-                userId = "usr_fan_01",
-                email = "yonas@etfc.stream",
-                handle = "@habesha_fan",
-                displayName = "Yonas Habesha",
-                passwordHash = SecurityUtils.hashPassword("user123"),
-                phoneNumber = "+251911000002",
-                countryCode = "+251",
-                flagEmoji = "🇪🇹",
-                role = UserRole.USER.name,
-                authToken = SecurityUtils.generateAuthToken("usr_fan_01", UserRole.USER.name),
-                createdTimestamp = System.currentTimeMillis() - 86400000L * 14,
-                lastLoginTimestamp = System.currentTimeMillis()
-            ),
-            UserAccountEntity(
-                userId = "usr_fan_02",
-                email = "dawit@etfc.stream",
-                handle = "@sheger_striker",
-                displayName = "Dawit Striker",
-                passwordHash = SecurityUtils.hashPassword("user123"),
-                phoneNumber = "+251911000003",
-                countryCode = "+251",
-                flagEmoji = "🇪🇹",
-                role = UserRole.USER.name,
-                authToken = SecurityUtils.generateAuthToken("usr_fan_02", UserRole.USER.name),
-                createdTimestamp = System.currentTimeMillis() - 86400000L * 7,
-                lastLoginTimestamp = System.currentTimeMillis()
-            ),
-            UserAccountEntity(
-                userId = "usr_fan_03",
-                email = "brian@etfc.stream",
-                handle = "@nairobi_mma",
-                displayName = "Brian Ochieng",
-                passwordHash = SecurityUtils.hashPassword("user123"),
-                phoneNumber = "+254700000001",
-                countryCode = "+254",
-                flagEmoji = "🇰🇪",
-                role = UserRole.USER.name,
-                authToken = SecurityUtils.generateAuthToken("usr_fan_03", UserRole.USER.name),
-                createdTimestamp = System.currentTimeMillis() - 86400000L * 2,
-                lastLoginTimestamp = System.currentTimeMillis()
             )
         )
 
-        dao.insertUsersIfNotExist(demoUsers)
+        dao.insertUsersIfNotExist(adminUser)
 
         // Seed rich initial live chat messages with mentions & pinned mod announcement
         val seedMessages = listOf(
@@ -1437,6 +1398,45 @@ class EtfcRepository(
         seedDynamicContentIfEmpty()
     }
 
+    suspend fun syncCurrentFirebaseUser(): UserAccount? {
+        val fbUser = try {
+            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        } catch (e: Exception) {
+            null
+        } ?: return null
+
+        val email = fbUser.email?.lowercase() ?: return null
+        var userEntity = dao.getUserByEmail(email)
+        if (userEntity == null) {
+            val generatedHandle = "@${email.substringBefore("@").replace(".", "_")}"
+            val userId = "usr_${fbUser.uid.take(8)}"
+            val isAdminEmail = email.equals("dannynewg@gmail.com", ignoreCase = true) || (syncManager?.isEmailInvitedAdmin(email) ?: false)
+            val role = if (isAdminEmail) UserRole.ADMIN.name else UserRole.USER.name
+            val token = SecurityUtils.generateAuthToken(userId, role)
+
+            val newEntity = UserAccountEntity(
+                userId = userId,
+                email = email,
+                handle = generatedHandle,
+                displayName = fbUser.displayName ?: email.substringBefore("@"),
+                passwordHash = "",
+                phoneNumber = fbUser.phoneNumber ?: "+251911000000",
+                countryCode = "+251",
+                flagEmoji = "🇪🇹",
+                role = role,
+                authToken = token,
+                createdTimestamp = System.currentTimeMillis(),
+                lastLoginTimestamp = System.currentTimeMillis()
+            )
+            dao.insertUser(newEntity)
+            userEntity = newEntity
+        }
+
+        val model = mapUserEntityToModel(userEntity)
+        syncManager?.pushUserToCloud(model)
+        return model
+    }
+
     suspend fun registerUser(
         email: String,
         handle: String,
@@ -1453,40 +1453,49 @@ class EtfcRepository(
         if (cleanHandle.length < 3) {
             return AuthResult.Error("User handle must be at least 3 characters.")
         }
-        if (password.length < 4) {
-            return AuthResult.Error("Password must be at least 4 characters.")
+        if (password.length < 6) {
+            return AuthResult.Error("Password must be at least 6 characters.")
         }
 
-        val existingByEmail = dao.getUserByEmail(email.trim().lowercase())
-        if (existingByEmail != null) {
-            return AuthResult.Error("An account with this email already exists.")
+        val cleanEmail = email.trim().lowercase()
+        val resolvedName = displayName.trim().ifEmpty { cleanHandle.removePrefix("@") }
+        var firebaseUid: String? = null
+
+        // 1. Create user in Firebase Authentication
+        try {
+            val authResult = com.google.firebase.auth.FirebaseAuth.getInstance()
+                .createUserWithEmailAndPassword(cleanEmail, password)
+                .await()
+            val firebaseUser = authResult.user
+            firebaseUid = firebaseUser?.uid
+            if (firebaseUser != null) {
+                val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                    .setDisplayName(resolvedName)
+                    .build()
+                firebaseUser.updateProfile(profileUpdates).await()
+            }
+        } catch (e: com.google.firebase.auth.FirebaseAuthUserCollisionException) {
+            return AuthResult.Error("An account with this email address already exists. Please sign in.")
+        } catch (e: com.google.firebase.auth.FirebaseAuthWeakPasswordException) {
+            return AuthResult.Error("Password is too weak: ${e.reason ?: "Please use at least 6 characters."}")
+        } catch (e: com.google.firebase.auth.FirebaseAuthInvalidCredentialsException) {
+            return AuthResult.Error("Invalid email format.")
+        } catch (e: Exception) {
+            Log.e("EtfcRepository", "Firebase Auth registration failed: ${e.message}", e)
+            return AuthResult.Error(e.localizedMessage ?: "Firebase registration failed. Please check your internet connection.")
         }
 
-        val existingByHandle = dao.getUserByHandle(cleanHandle)
-        if (existingByHandle != null) {
-            return AuthResult.Error("The handle $cleanHandle is already taken. Please pick another.")
-        }
-
-        val userId = "usr_${UUID.randomUUID().toString().take(8)}"
+        val userId = "usr_${firebaseUid?.take(8) ?: UUID.randomUUID().toString().take(8)}"
         val passwordHash = SecurityUtils.hashPassword(password)
-        val isAdminEmail = email.trim().equals("dannynewg@gmail.com", ignoreCase = true) || (syncManager?.isEmailInvitedAdmin(email) ?: false)
+        val isAdminEmail = cleanEmail.equals("dannynewg@gmail.com", ignoreCase = true) || (syncManager?.isEmailInvitedAdmin(cleanEmail) ?: false)
         val role = if (isAdminEmail) UserRole.ADMIN.name else UserRole.USER.name
         val token = SecurityUtils.generateAuthToken(userId, role)
 
-        // Attempt Firebase Auth account creation for real online authentication
-        try {
-            com.google.firebase.auth.FirebaseAuth.getInstance()
-                .createUserWithEmailAndPassword(email.trim().lowercase(), password)
-                .await()
-        } catch (e: Exception) {
-            Log.w("EtfcRepository", "Firebase Auth register note: ${e.message}")
-        }
-
         val newEntity = UserAccountEntity(
             userId = userId,
-            email = email.trim().lowercase(),
+            email = cleanEmail,
             handle = cleanHandle,
-            displayName = displayName.trim().ifEmpty { cleanHandle.removePrefix("@") },
+            displayName = resolvedName,
             passwordHash = passwordHash,
             phoneNumber = phoneNumber.trim(),
             countryCode = countryCode,
@@ -1500,40 +1509,80 @@ class EtfcRepository(
         dao.insertUser(newEntity)
         val userModel = mapUserEntityToModel(newEntity)
         syncManager?.pushUserToCloud(userModel)
-        return AuthResult.Success(userModel, "Registration successful! Welcome to ETFC.")
+        return AuthResult.Success(userModel, "Account created successfully! Welcome to ETFC Arena, ${userModel.displayName}.")
     }
 
     suspend fun loginUser(identifier: String, password: String): AuthResult {
-        val cleanId = identifier.trim().lowercase()
-        
-        // Attempt Firebase Auth sign in if email provided
-        if (cleanId.contains("@")) {
-            try {
-                com.google.firebase.auth.FirebaseAuth.getInstance()
-                    .signInWithEmailAndPassword(cleanId, password)
-                    .await()
-            } catch (e: Exception) {
-                Log.w("EtfcRepository", "Firebase Auth login note: ${e.message}")
-            }
+        val cleanId = identifier.trim()
+        if (cleanId.isBlank()) {
+            return AuthResult.Error("Please enter your email or @handle.")
+        }
+        if (password.isBlank()) {
+            return AuthResult.Error("Please enter your password.")
         }
 
-        val userEntity = dao.getUserByEmailOrHandle(cleanId)
-            ?: dao.getUserByHandle("@${cleanId.removePrefix("@")}")
+        val isEmail = cleanId.contains("@") && cleanId.contains(".")
+        val targetEmail = if (isEmail) {
+            cleanId.lowercase()
+        } else {
+            val cleanHandle = if (cleanId.startsWith("@")) cleanId else "@$cleanId"
+            dao.getUserByHandle(cleanHandle)?.email
+        }
+
+        if (targetEmail == null) {
+            return AuthResult.Error("Please enter your registered email address.")
+        }
+
+        var firebaseUid: String? = null
+        var firebaseDisplayName: String? = null
+
+        // 1. Authenticate with Firebase Authentication
+        try {
+            val fbResult = com.google.firebase.auth.FirebaseAuth.getInstance()
+                .signInWithEmailAndPassword(targetEmail, password)
+                .await()
+            firebaseUid = fbResult.user?.uid
+            firebaseDisplayName = fbResult.user?.displayName
+        } catch (e: com.google.firebase.auth.FirebaseAuthInvalidCredentialsException) {
+            return AuthResult.Error("Invalid email or password. Please verify your credentials.")
+        } catch (e: com.google.firebase.auth.FirebaseAuthInvalidUserException) {
+            return AuthResult.Error("No account found with this email. Please create an account.")
+        } catch (e: Exception) {
+            Log.e("EtfcRepository", "Firebase Auth sign in failed: ${e.message}", e)
+            return AuthResult.Error(e.localizedMessage ?: "Firebase sign-in failed. Please check your internet connection.")
+        }
+
+        var userEntity = dao.getUserByEmail(targetEmail)
 
         if (userEntity == null) {
-            return AuthResult.Error("Account not found. Please check your email or @handle.")
+            val generatedHandle = "@${targetEmail.substringBefore("@").replace(".", "_")}"
+            val userId = "usr_${firebaseUid?.take(8) ?: UUID.randomUUID().toString().take(8)}"
+            val isAdminEmail = targetEmail.equals("dannynewg@gmail.com", ignoreCase = true) || (syncManager?.isEmailInvitedAdmin(targetEmail) ?: false)
+            val role = if (isAdminEmail) UserRole.ADMIN.name else UserRole.USER.name
+            val token = SecurityUtils.generateAuthToken(userId, role)
+
+            val newEntity = UserAccountEntity(
+                userId = userId,
+                email = targetEmail,
+                handle = generatedHandle,
+                displayName = firebaseDisplayName ?: targetEmail.substringBefore("@"),
+                passwordHash = SecurityUtils.hashPassword(password),
+                phoneNumber = "+251911000000",
+                countryCode = "+251",
+                flagEmoji = "🇪🇹",
+                role = role,
+                authToken = token,
+                createdTimestamp = System.currentTimeMillis(),
+                lastLoginTimestamp = System.currentTimeMillis()
+            )
+            dao.insertUser(newEntity)
+            userEntity = newEntity
         }
 
         if (userEntity.isBanned) {
             return AuthResult.Error("This account has been suspended by ETFC Arena Administration.")
         }
 
-        val isPasswordValid = SecurityUtils.verifyPassword(password, userEntity.passwordHash)
-        if (!isPasswordValid) {
-            return AuthResult.Error("Incorrect password. Please try again.")
-        }
-
-        // Check if user is admin in Firestore users collection or invited admins or superadmin
         val cloudRole = syncManager?.fetchUserRole(userEntity.email) ?: "user"
         val isAdminEmail = userEntity.email.equals("dannynewg@gmail.com", ignoreCase = true) || 
             (syncManager?.isEmailInvitedAdmin(userEntity.email) ?: false) || 
@@ -1555,6 +1604,30 @@ class EtfcRepository(
         return AuthResult.Success(model, "Welcome back, ${updatedEntity.displayName}!")
     }
 
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
+        val cleanEmail = email.trim().lowercase()
+        if (!cleanEmail.contains("@") || !cleanEmail.contains(".")) {
+            return Result.failure(Exception("Please enter a valid email address."))
+        }
+        return try {
+            com.google.firebase.auth.FirebaseAuth.getInstance()
+                .sendPasswordResetEmail(cleanEmail)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w("EtfcRepository", "Password reset failed: ${e.message}")
+            Result.failure(Exception(e.localizedMessage ?: "Failed to send password reset email. Please verify the email address."))
+        }
+    }
+
+    suspend fun signOut() {
+        try {
+            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+        } catch (e: Exception) {
+            Log.w("EtfcRepository", "Firebase Auth sign out notice: ${e.message}")
+        }
+    }
+
     val adminInvites: StateFlow<List<AdminInvite>> = syncManager?.adminInvites ?: MutableStateFlow(
         listOf(AdminInvite("dannynewg@gmail.com", "Owner", 0L, "ACTIVE_OWNER"))
     ).asStateFlow()
@@ -1569,6 +1642,84 @@ class EtfcRepository(
 
     suspend fun switchUserRole(userId: String, newRole: UserRole) {
         dao.updateUserRole(userId, newRole.name)
+    }
+
+    suspend fun updateUserProfile(
+        userId: String,
+        displayName: String,
+        handle: String,
+        phoneNumber: String,
+        countryCode: String,
+        flagEmoji: String
+    ): Result<UserAccount> {
+        val cleanHandle = if (handle.startsWith("@")) handle.trim() else "@${handle.trim()}"
+        val cleanName = displayName.trim().ifEmpty { cleanHandle.removePrefix("@") }
+        
+        dao.updateUserDetails(
+            userId = userId,
+            displayName = cleanName,
+            handle = cleanHandle,
+            phoneNumber = phoneNumber.trim(),
+            countryCode = countryCode,
+            flagEmoji = flagEmoji
+        )
+        val updated = dao.getUserById(userId)
+        return if (updated != null) {
+            val model = mapUserEntityToModel(updated)
+            syncManager?.pushUserToCloud(model)
+            Result.success(model)
+        } else {
+            Result.failure(Exception("Failed to update profile."))
+        }
+    }
+
+    suspend fun loginWithGoogle(
+        googleEmail: String,
+        googleName: String,
+        photoUrl: String? = null
+    ): AuthResult {
+        val cleanEmail = googleEmail.trim().lowercase()
+        var existing = dao.getUserByEmail(cleanEmail)
+        
+        if (existing == null) {
+            val generatedHandle = "@${cleanEmail.substringBefore("@").replace(".", "_")}"
+            val userId = "usr_g_${UUID.randomUUID().toString().take(8)}"
+            val isAdminEmail = cleanEmail.equals("dannynewg@gmail.com", ignoreCase = true) || (syncManager?.isEmailInvitedAdmin(cleanEmail) ?: false)
+            val role = if (isAdminEmail) UserRole.ADMIN.name else UserRole.USER.name
+            val token = SecurityUtils.generateAuthToken(userId, role)
+
+            val newEntity = UserAccountEntity(
+                userId = userId,
+                email = cleanEmail,
+                handle = generatedHandle,
+                displayName = googleName.ifBlank { "ETFC Warrior" },
+                passwordHash = SecurityUtils.hashPassword("google_oauth_${System.currentTimeMillis()}"),
+                phoneNumber = "+251911000000",
+                countryCode = "+251",
+                flagEmoji = "🇪🇹",
+                role = role,
+                authToken = token,
+                createdTimestamp = System.currentTimeMillis(),
+                lastLoginTimestamp = System.currentTimeMillis()
+            )
+            dao.insertUser(newEntity)
+            existing = newEntity
+        } else {
+            val isAdminEmail = cleanEmail.equals("dannynewg@gmail.com", ignoreCase = true) || (syncManager?.isEmailInvitedAdmin(cleanEmail) ?: false)
+            val currentRole = if (isAdminEmail) UserRole.ADMIN.name else existing.role
+            val newToken = SecurityUtils.generateAuthToken(existing.userId, currentRole)
+            dao.updateLastLogin(existing.userId, System.currentTimeMillis(), newToken)
+            dao.updateUserRole(existing.userId, currentRole)
+            existing = existing.copy(
+                role = currentRole,
+                lastLoginTimestamp = System.currentTimeMillis(),
+                authToken = newToken
+            )
+        }
+
+        val userModel = mapUserEntityToModel(existing)
+        syncManager?.pushUserToCloud(userModel)
+        return AuthResult.Success(userModel, "Google authentication successful! Welcome, ${userModel.displayName}.")
     }
 
     fun getAllUsersFlow(): Flow<List<UserAccount>> = dao.getAllUsers().map { list ->

@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.DownloadedFightEntity
@@ -315,10 +316,40 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.getAllUsersFlow().collectLatest { users ->
                 _uiState.value = _uiState.value.copy(
-                    allDemoUsers = users,
-                    currentUser = _uiState.value.currentUser ?: users.firstOrNull { it.isAdmin } ?: users.firstOrNull()
+                    allDemoUsers = users
                 )
             }
+        }
+
+        // Firebase Auth State Listener (Single Source of Truth)
+        try {
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            val initialFbUser = auth.currentUser
+            if (initialFbUser != null) {
+                viewModelScope.launch {
+                    val syncedUser = repository.syncCurrentFirebaseUser()
+                    _uiState.value = _uiState.value.copy(currentUser = syncedUser)
+                }
+            } else {
+                _uiState.value = _uiState.value.copy(currentUser = null)
+            }
+
+            auth.addAuthStateListener { firebaseAuth ->
+                val fbUser = firebaseAuth.currentUser
+                if (fbUser == null) {
+                    _uiState.value = _uiState.value.copy(
+                        currentUser = null,
+                        isProfileDrawerVisible = false
+                    )
+                } else {
+                    viewModelScope.launch {
+                        val syncedUser = repository.syncCurrentFirebaseUser()
+                        _uiState.value = _uiState.value.copy(currentUser = syncedUser)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("EtfcViewModel", "Firebase Auth listener init: ${e.message}")
         }
 
         // Observe Live Chat Messages for current bout
@@ -663,20 +694,79 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun loginWithGoogle(email: String, name: String, photoUrl: String? = null) {
+        viewModelScope.launch {
+            val result = repository.loginWithGoogle(email, name, photoUrl)
+            when (result) {
+                is AuthResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        currentUser = result.user,
+                        isAuthDialogVisible = false,
+                        authErrorMessage = null,
+                        chatSnackbarMessage = "Signed in with Google as ${result.user.displayName}"
+                    )
+                }
+                is AuthResult.Error -> {
+                    _uiState.value = _uiState.value.copy(authErrorMessage = result.errorMessage)
+                }
+            }
+        }
+    }
+
+    fun updateUserProfile(
+        displayName: String,
+        handle: String,
+        phoneNumber: String,
+        countryCode: String = "+251",
+        flagEmoji: String = "🇪🇹",
+        onSuccess: () -> Unit = {}
+    ) {
+        val user = _uiState.value.currentUser ?: return
+        viewModelScope.launch {
+            val result = repository.updateUserProfile(
+                userId = user.userId,
+                displayName = displayName,
+                handle = handle,
+                phoneNumber = phoneNumber,
+                countryCode = countryCode,
+                flagEmoji = flagEmoji
+            )
+            if (result.isSuccess) {
+                val updatedUser = result.getOrThrow()
+                _uiState.value = _uiState.value.copy(
+                    currentUser = updatedUser,
+                    settingsSnackbarMessage = "Profile updated successfully!"
+                )
+                onSuccess()
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    settingsSnackbarMessage = result.exceptionOrNull()?.message ?: "Failed to update profile"
+                )
+            }
+        }
+    }
+
+    fun sendPasswordResetEmail(email: String, onResult: (Boolean, String) -> Unit = { _, _ -> }) {
+        viewModelScope.launch {
+            val result = repository.sendPasswordResetEmail(email)
+            if (result.isSuccess) {
+                onResult(true, "Password reset link sent to $email. Please check your inbox.")
+            } else {
+                onResult(false, result.exceptionOrNull()?.message ?: "Failed to send reset link.")
+            }
+        }
+    }
+
     fun logout() {
-        _uiState.value = _uiState.value.copy(
-            currentUser = UserAccount(
-                userId = "usr_guest",
-                email = "guest@arena.etfc",
-                handle = "@guest",
-                displayName = "Guest Fan",
-                phoneNumber = "",
-                role = UserRole.GUEST,
-                authToken = "ETFC.GUEST.TOKEN"
-            ),
-            isProfileDrawerVisible = false,
-            chatSnackbarMessage = "Logged out. Operating in Guest Viewer mode."
-        )
+        viewModelScope.launch {
+            repository.signOut()
+            _uiState.value = _uiState.value.copy(
+                currentUser = null,
+                isProfileDrawerVisible = false,
+                isAuthDialogVisible = false,
+                chatSnackbarMessage = "Signed out successfully."
+            )
+        }
     }
 
     fun quickSwitchUser(user: UserAccount) {
@@ -1538,11 +1628,12 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateProfile(name: String, handle: String, phone: String) {
         val current = _uiState.value.currentUser ?: return
-        val updated = current.copy(
+        updateUserProfile(
             displayName = name,
             handle = handle,
-            phoneNumber = phone
+            phoneNumber = phone,
+            countryCode = current.countryCode,
+            flagEmoji = current.flagEmoji
         )
-        _uiState.value = _uiState.value.copy(currentUser = updated)
     }
 }

@@ -28,13 +28,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -53,23 +59,34 @@ import com.example.ui.theme.EtfcGold
 import com.example.ui.theme.EtfcGoldGlow
 import com.example.ui.theme.EtfcLiveRed
 import com.example.ui.theme.EtfcObsidian
-import com.example.ui.theme.EtfcRedPrimary
+import com.example.ui.theme.EtfcSuccess
 import com.example.ui.theme.EtfcSurface
 import com.example.ui.theme.EtfcTextMuted
 import com.example.ui.theme.EtfcTextPrimary
 import com.example.ui.theme.EtfcTextSecondary
 import kotlinx.coroutines.delay
 
+/**
+ * Modern Animated Splash Screen Component
+ * Performs the initial Firebase Auth check and securely routes to either
+ * the Home Screen or the unified Auth Screen.
+ */
 @Composable
 fun SplashScreen(
-    onSplashFinished: () -> Unit
+    onNavigateToHome: () -> Unit,
+    onNavigateToAuth: () -> Unit,
+    isUserAuthenticated: Boolean? = null
 ) {
-    val scale = remember { Animatable(0.7f) }
+    val scale = remember { Animatable(0.65f) }
     val alpha = remember { Animatable(0f) }
+    val badgeGlow = remember { Animatable(0.4f) }
+
+    var authStatusMessage by remember { mutableStateOf("Initializing Live Arena...") }
+    var isAuthCheckDone by remember { mutableStateOf(false) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "splash_glow")
     val glowPulse by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
+        initialValue = 0.45f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
             animation = tween(1200, easing = LinearEasing),
@@ -79,11 +96,33 @@ fun SplashScreen(
     )
 
     LaunchedEffect(Unit) {
-        // Smooth scale and fade-in
-        alpha.animateTo(1f, animationSpec = tween(700, easing = FastOutSlowInEasing))
-        scale.animateTo(1f, animationSpec = tween(700, easing = FastOutSlowInEasing))
-        delay(1300) // Total display time ~2.0s
-        onSplashFinished()
+        // 1. Entrance animation (scale + fade-in)
+        alpha.animateTo(1f, animationSpec = tween(650, easing = FastOutSlowInEasing))
+        scale.animateTo(1f, animationSpec = tween(650, easing = FastOutSlowInEasing))
+        
+        // 2. Perform Firebase Auth & Session check
+        authStatusMessage = "Checking Firebase Auth session..."
+        delay(600)
+
+        val firebaseUser = try {
+            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        } catch (e: Exception) {
+            null
+        }
+
+        val authenticated = isUserAuthenticated ?: (firebaseUser != null)
+        isAuthCheckDone = true
+
+        if (authenticated) {
+            val name = firebaseUser?.displayName ?: "Champion Fan"
+            authStatusMessage = "Welcome back, $name! Loading Arena..."
+            delay(750)
+            onNavigateToHome()
+        } else {
+            authStatusMessage = "Welcome to ETFC! Preparing Sign In..."
+            delay(750)
+            onNavigateToAuth()
+        }
     }
 
     Box(
@@ -92,24 +131,24 @@ fun SplashScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0D0F14),
+                        Color(0xFF0F1117),
                         EtfcObsidian,
-                        Color(0xFF080A0E)
+                        Color(0xFF07090D)
                     )
                 )
             )
             .testTag("splash_screen_container"),
         contentAlignment = Alignment.Center
     ) {
-        // Background subtle radial glow
+        // Background radiant ambient glow
         Box(
             modifier = Modifier
-                .size(320.dp)
-                .scale(scale.value * 1.1f)
+                .size(340.dp)
+                .scale(scale.value * 1.15f)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            EtfcGold.copy(alpha = 0.12f * glowPulse),
+                            EtfcGold.copy(alpha = 0.15f * glowPulse),
                             Color.Transparent
                         )
                     ),
@@ -125,22 +164,23 @@ fun SplashScreen(
                 .alpha(alpha.value)
                 .scale(scale.value)
         ) {
-            // Main Branded Logo Badge
+            // Main Branded Logo Badge with Octagon / Shield styling
             Surface(
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(22.dp),
                 color = Color.Black,
                 border = BorderStroke(2.dp, EtfcGold.copy(alpha = glowPulse)),
-                shadowElevation = 16.dp,
+                shadowElevation = 20.dp,
                 modifier = Modifier
-                    .size(130.dp)
+                    .size(136.dp)
                     .border(
-                        BorderStroke(4.dp, EtfcGoldGlow.copy(alpha = 0.3f * glowPulse)),
-                        RoundedCornerShape(20.dp)
+                        BorderStroke(4.dp, EtfcGoldGlow.copy(alpha = 0.35f * glowPulse)),
+                        RoundedCornerShape(22.dp)
                     )
+                    .testTag("splash_logo_badge")
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(12.dp)
+                    modifier = Modifier.padding(14.dp)
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_etfc_logo),
@@ -160,7 +200,7 @@ fun SplashScreen(
             ) {
                 Text(
                     text = "ETFC",
-                    fontSize = 34.sp,
+                    fontSize = 36.sp,
                     fontWeight = FontWeight.Black,
                     color = EtfcGold,
                     letterSpacing = 2.5.sp
@@ -168,7 +208,7 @@ fun SplashScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "STREAM",
-                    fontSize = 34.sp,
+                    fontSize = 36.sp,
                     fontWeight = FontWeight.Black,
                     color = EtfcTextPrimary,
                     letterSpacing = 2.5.sp
@@ -187,7 +227,7 @@ fun SplashScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Surface(
                 shape = RoundedCornerShape(6.dp),
@@ -204,23 +244,36 @@ fun SplashScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(44.dp))
 
-            // Loading indicator
-            CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
-                color = EtfcGold,
-                strokeWidth = 2.dp
-            )
+            // Status & Loading Indicator
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (!isAuthCheckDone) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = EtfcGold,
+                        strokeWidth = 2.5.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Auth Success",
+                        tint = EtfcSuccess,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Connecting to Live Arena...",
-                fontSize = 11.sp,
-                color = EtfcTextMuted,
-                letterSpacing = 0.5.sp
-            )
+                Text(
+                    text = authStatusMessage,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isAuthCheckDone) EtfcGold else EtfcTextMuted,
+                    letterSpacing = 0.3.sp
+                )
+            }
         }
 
         // Bottom version & domain info
@@ -231,18 +284,53 @@ fun SplashScreen(
                 .padding(bottom = 24.dp)
                 .alpha(alpha.value)
         ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = EtfcSurface.copy(alpha = 0.7f),
+                border = BorderStroke(1.dp, EtfcGold.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = "Secure Portal",
+                        tint = EtfcGold,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "etfcstream.rf.gd",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = EtfcGold,
+                        letterSpacing = 0.8.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             Text(
-                text = "etfcstream.rf.gd",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = EtfcGold.copy(alpha = 0.7f),
-                letterSpacing = 0.8.sp
-            )
-            Text(
-                text = "Version 3.4.0 • Realtime Firebase Architecture",
+                text = "Version 3.4.0 • Firebase Cloud Engine",
                 fontSize = 9.sp,
                 color = EtfcTextMuted
             )
         }
     }
+}
+
+/**
+ * Backward compatibility overload
+ */
+@Composable
+fun SplashScreen(
+    onSplashFinished: () -> Unit
+) {
+    SplashScreen(
+        onNavigateToHome = onSplashFinished,
+        onNavigateToAuth = onSplashFinished,
+        isUserAuthenticated = true
+    )
 }
