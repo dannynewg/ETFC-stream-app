@@ -141,7 +141,7 @@ if ($isAdmin) {
     <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
         <div>
             <h2 class="etfc-gold fw-black mb-0">⚔️ ETFC ADMIN CONTROL PORTAL</h2>
-            <small class="text-secondary">Host: etfcstream.freedev.app • Event: ETFC 003: Champions Collide</small>
+            <small class="text-secondary">Host: etfcstream.rf.gd • Event: ETFC 003: Champions Collide</small>
         </div>
         <?php if ($isAdmin): ?>
             <div>

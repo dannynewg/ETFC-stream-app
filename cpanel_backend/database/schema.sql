@@ -1,7 +1,8 @@
 -- =============================================================================
 -- ETFC STREAMING PLATFORM - RELATIONAL DATABASE SCHEMA (MySQL / MariaDB)
--- Host: cPanel MySQL Database
--- Domain: etfcstream.freedev.app
+-- Host: cPanel / InfinityFree MySQL Database (sql208.infinityfree.com)
+-- Domain: etfcstream.rf.gd
+-- Database: if0_42797288_etfc_streaming_db
 -- Architecture: Relational Backend + Firebase Cloud Sync Bridge
 -- =============================================================================
 
@@ -196,8 +197,8 @@ CREATE TABLE IF NOT EXISTS `payment_webhooks_log` (
 -- -----------------------------------------------------------------------------
 INSERT INTO `events` (`id`, `event_code`, `event_name`, `event_edition`, `venue`, `scheduled_at`, `status`, `ppv_price_etb`, `hls_master_url`)
 VALUES 
-(1, 'ETFC_002', 'ETFC 002: Adwa Fight Night', 'ETFC 002', 'Adwa 00 Museum, Addis Ababa', '2026-08-27 20:00:00', 'COMPLETED', 600.00, 'https://cdn.etfcstream.freedev.app/hls/etfc002_master.m3u8'),
-(2, 'ETFC_003', 'ETFC 003: Champions Collide', 'ETFC 003', 'Adwa 00 Museum Arena, Addis Ababa', '2026-11-28 20:00:00', 'UPCOMING', 600.00, 'https://cdn.etfcstream.freedev.app/hls/etfc003_master.m3u8')
+(1, 'ETFC_002', 'ETFC 002: Adwa Fight Night', 'ETFC 002', 'Adwa 00 Museum, Addis Ababa', '2026-08-27 20:00:00', 'COMPLETED', 600.00, 'https://etfcstream.rf.gd/hls/etfc002_master.m3u8'),
+(2, 'ETFC_003', 'ETFC 003: Champions Collide', 'ETFC 003', 'Adwa 00 Museum Arena, Addis Ababa', '2026-11-28 20:00:00', 'UPCOMING', 600.00, 'https://etfcstream.rf.gd/hls/etfc003_master.m3u8')
 ON DUPLICATE KEY UPDATE `event_name`=VALUES(`event_name`);
 
 INSERT INTO `live_stream_control` (`event_id`, `is_live_broadcast_active`, `stream_health`, `pinned_announcement`)

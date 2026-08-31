@@ -11,8 +11,8 @@ This guide provides step-by-step instructions for deploying the **ETFC PHP/MySQL
 |                            ETFC UNIFIED ARCHITECTURE                              |
 +-----------------------------------------------------------------------------------+
 |                                                                                   |
-|  [cPanel Web Host]                  [Firebase Cloud Engine]                       |
-|  etfcstream.freedev.app             - Cloud Firestore (Users, Passes, Bouts)      |
+|  [cPanel / InfinityFree Web Host]   [Firebase Cloud Engine]                       |
+|  etfcstream.rf.gd                   - Cloud Firestore (Users, Passes, Bouts)      |
 |  - Web Landing & Countdown          - Realtime DB (/live_arena/status)            |
 |  - Webhook Relays (Telebirr/Chapa)  - Firebase Auth (Phone OTP & Email)           |
 |  - MySQL Relational DB (schema.sql)                                               |
@@ -31,27 +31,29 @@ This guide provides step-by-step instructions for deploying the **ETFC PHP/MySQL
 
 ---
 
-## 🚀 Step 1: Set Up Free cPanel Web Hosting
+## 🚀 Step 1: Set Up Free cPanel / InfinityFree Web Hosting
 
-1. **Register for Free cPanel Hosting**:
-   - Recommended options: **InfinityFree.com**, **ProFreeHost.com**, or **000webhost.com**.
-2. **Assign Your Domain / Subdomain**:
-   - Add your custom domain `etfcstream.freedev.app` or use the assigned free subdomain (e.g. `etfcstream.epizy.com`).
+1. **InfinityFree Hosting Account**:
+   - Host: **InfinityFree** (`sql208.infinityfree.com`)
+2. **Assigned Domain**:
+   - Primary domain: `https://etfcstream.rf.gd`
 3. **Log into cPanel** and verify that PHP version is **7.4, 8.0, 8.1, or 8.2**.
 
 ---
 
 ## 🗄️ Step 2: Create MySQL Database & Run `schema.sql`
 
-1. Inside cPanel, navigate to **MySQL® Databases** (or **MySQL Database Wizard**).
-2. Create a new database: e.g. `etfc_streaming_db`.
-3. Create a new user: e.g. `etfc_db_user` with a secure password (e.g. `ETFC_Strong_Pass_2026!`).
-4. **Add User to Database** and grant **ALL PRIVILEGES**.
-5. Return to cPanel Home and open **phpMyAdmin**.
-6. Select your newly created `etfc_streaming_db`.
-7. Click the **Import** tab at the top.
-8. Choose file: `/cpanel_backend/database/schema.sql` and click **Go**.
-9. Verify that the following 7 tables are created:
+1. Inside cPanel / InfinityFree Control Panel, navigate to **MySQL® Databases**.
+2. Your database details:
+   - **DB Host**: `sql208.infinityfree.com`
+   - **DB Name**: `if0_42797288_etfc_streaming_db`
+   - **DB User**: `if0_42797288`
+   - **DB Password**: `rpKjGIkgwDld`
+3. Open **phpMyAdmin** in your control panel.
+4. Select `if0_42797288_etfc_streaming_db`.
+5. Click the **Import** tab at the top.
+6. Choose file: `/cpanel_backend/database/schema.sql` and click **Go**.
+7. Verify that the following 7 tables are created:
    - `users`
    - `events`
    - `fighters`
@@ -62,14 +64,14 @@ This guide provides step-by-step instructions for deploying the **ETFC PHP/MySQL
 
 ---
 
-## 📁 Step 3: Upload Backend Files to `public_html`
+## 📁 Step 3: Upload Backend Files to `public_html` / `htdocs`
 
 Using **cPanel File Manager** or **FTP** (FileZilla):
 
-1. Open the `public_html/` folder on your server.
+1. Open the `htdocs/` or `public_html/` folder on your server.
 2. Upload the files from the `/cpanel_backend/` folder into your web root:
    ```
-   public_html/
+   htdocs/
    ├── index.php                 (Web landing page & countdown)
    ├── .htaccess                 (CORS & security rules)
    ├── config/
@@ -87,12 +89,13 @@ Using **cPanel File Manager** or **FTP** (FileZilla):
            ├── telebirr.php      (Telebirr IPN callback)
            └── chapa.php         (Chapa payment callback)
    ```
-3. Edit `config/config.php` and fill in your MySQL credentials:
+3. `config/config.php` is pre-configured with:
    ```php
-   define('DB_HOST', 'localhost'); // Or your cPanel MySQL host (e.g. sql104.epizy.com)
-   define('DB_NAME', 'your_cpanel_dbname');
-   define('DB_USER', 'your_cpanel_dbuser');
-   define('DB_PASS', 'your_cpanel_dbpassword');
+   define('DB_HOST', getenv('DB_HOST') ?: 'sql208.infinityfree.com');
+   define('DB_PORT', getenv('DB_PORT') ?: '3306');
+   define('DB_NAME', getenv('DB_NAME') ?: 'if0_42797288_etfc_streaming_db');
+   define('DB_USER', getenv('DB_USER') ?: 'if0_42797288');
+   define('DB_PASS', getenv('DB_PASS') ?: 'rpKjGIkgwDld');
    ```
 
 ---
@@ -117,16 +120,16 @@ Using **cPanel File Manager** or **FTP** (FileZilla):
 ## 💳 Step 5: Configure Payment Webhook URLs
 
 - **Telebirr Developer Portal / Partner Merchant**:
-  - Webhook URL: `https://etfcstream.freedev.app/api/webhooks/telebirr.php`
+  - Webhook URL: `https://etfcstream.rf.gd/api/webhooks/telebirr.php`
 - **Chapa Dashboard -> Settings -> Webhooks**:
-  - Webhook URL: `https://etfcstream.freedev.app/api/webhooks/chapa.php`
+  - Webhook URL: `https://etfcstream.rf.gd/api/webhooks/chapa.php`
   - Secret Hash: `chapa_secret_hash_etfc` (matches `CHAPA_WEBHOOK_SECRET` in `config.php`)
 
 ---
 
 ## 🛠️ Step 6: Access the Web Admin Control Portal
 
-1. Navigate in your browser to: `https://etfcstream.freedev.app/admin/index.php`
+1. Navigate in your browser to: `https://etfcstream.rf.gd/admin/index.php`
 2. Sign in with:
    - **Email**: `dannynewg@gmail.com`
    - **Password**: `etfc2026`

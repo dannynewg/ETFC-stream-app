@@ -232,7 +232,7 @@ fun SplashScreen(
                 .alpha(alpha.value)
         ) {
             Text(
-                text = "etfcstream.freedev.app",
+                text = "etfcstream.rf.gd",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = EtfcGold.copy(alpha = 0.7f),

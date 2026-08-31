@@ -591,7 +591,7 @@ fun SettingsScreen(
                             .clip(RoundedCornerShape(8.dp))
                             .background(EtfcCardInner)
                             .clickable {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://etfcstream.freedev.app"))
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://etfcstream.rf.gd"))
                                 context.startActivity(intent)
                             }
                             .padding(10.dp),
@@ -602,7 +602,7 @@ fun SettingsScreen(
                             Icon(Icons.Default.Public, contentDescription = null, tint = EtfcGold, modifier = Modifier.size(18.dp))
                             Column {
                                 Text("Official Web Portal", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = EtfcTextPrimary)
-                                Text("etfcstream.freedev.app", fontSize = 10.sp, color = EtfcGold)
+                                Text("etfcstream.rf.gd", fontSize = 10.sp, color = EtfcGold)
                             }
                         }
                         Icon(Icons.Default.OpenInNew, contentDescription = null, tint = EtfcGold, modifier = Modifier.size(16.dp))

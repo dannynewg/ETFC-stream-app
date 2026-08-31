@@ -2,7 +2,7 @@
 // =============================================================================
 // ETFC STREAMING PLATFORM - CONFIGURATION SETTINGS
 // File: /cpanel_backend/config/config.php
-// Domain: etfcstream.freedev.app
+// Domain: etfcstream.rf.gd
 // =============================================================================
 
 // Prevent direct access
@@ -12,16 +12,16 @@ defined('ETFC_APP') or define('ETFC_APP', true);
 define('APP_ENV', 'production');
 
 // Base URL of your cPanel Hosting
-define('BASE_URL', 'https://etfcstream.freedev.app');
+define('BASE_URL', 'https://etfcstream.rf.gd');
 
 // -----------------------------------------------------------------------------
 // 1. MySQL Database Credentials (Created in cPanel -> MySQL Databases)
 // -----------------------------------------------------------------------------
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_HOST', getenv('DB_HOST') ?: 'sql208.infinityfree.com');
 define('DB_PORT', getenv('DB_PORT') ?: '3306');
-define('DB_NAME', getenv('DB_NAME') ?: 'etfc_streaming_db');
-define('DB_USER', getenv('DB_USER') ?: 'etfc_db_user');
-define('DB_PASS', getenv('DB_PASS') ?: 'ETFC_Strong_Pass_2026!');
+define('DB_NAME', getenv('DB_NAME') ?: 'if0_42797288_etfc_streaming_db');
+define('DB_USER', getenv('DB_USER') ?: 'if0_42797288');
+define('DB_PASS', getenv('DB_PASS') ?: 'rpKjGIkgwDld');
 define('DB_CHARSET', 'utf8mb4');
 
 // -----------------------------------------------------------------------------
@@ -50,7 +50,7 @@ define('CHAPA_CALLBACK_URL', BASE_URL . '/api/webhooks/chapa.php');
 define('ETFC_PPV_PRICE_ETB', 600.00);
 
 // Single Unified HLS Master Stream URL
-define('DEFAULT_HLS_STREAM_URL', 'https://cdn.etfcstream.freedev.app/live/etfc_master.m3u8');
+define('DEFAULT_HLS_STREAM_URL', 'https://etfcstream.rf.gd/live/etfc_master.m3u8');
 
 // Admin Superuser Email
 define('SUPERADMIN_EMAIL', 'dannynewg@gmail.com');

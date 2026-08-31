@@ -2,7 +2,7 @@
 // =============================================================================
 // ETFC STREAMING PLATFORM - WEB LANDING PORTAL
 // File: /cpanel_backend/public_html/index.php
-// Domain: etfcstream.freedev.app
+// Domain: etfcstream.rf.gd
 // =============================================================================
 
 require_once __DIR__ . '/../config/config.php';
