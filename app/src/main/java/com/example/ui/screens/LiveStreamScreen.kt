@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Lock
@@ -135,7 +136,8 @@ fun LiveStreamScreen(
     onToggleVipOnly: () -> Unit,
     onOpenAuthDialog: () -> Unit,
     onOpenProfileDrawer: () -> Unit,
-    onPredictWinner: (Fighter) -> Unit
+    onPredictWinner: (Fighter) -> Unit,
+    onBackToHome: () -> Unit = {}
 ) {
     var userVotedFighterId by remember { mutableStateOf<String?>(null) }
 
@@ -147,6 +149,67 @@ fun LiveStreamScreen(
             .testTag("live_stream_screen"),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // Top Navigation & Back Header
+        item {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = EtfcCardInner,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EtfcBorder),
+                    modifier = Modifier
+                        .clickable { onBackToHome() }
+                        .testTag("live_stream_back_btn")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronLeft,
+                            contentDescription = "Exit to Home",
+                            tint = EtfcGold,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "Back to Home",
+                            color = EtfcTextPrimary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = EtfcLiveRed.copy(alpha = 0.2f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EtfcLiveRed)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Surface(
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = EtfcLiveRed,
+                            modifier = Modifier.size(6.dp)
+                        ) {}
+                        Text(
+                            text = "ETFC 003 LIVE ARENA",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            color = EtfcLiveRed
+                        )
+                    }
+                }
+            }
+        }
         // User Auth / RBAC Status Badge Bar
         item {
             Spacer(modifier = Modifier.height(2.dp))

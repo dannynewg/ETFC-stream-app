@@ -777,82 +777,259 @@ class EtfcRepository(
     )
 
     // --- Official ETFC 002: Adwa Fight Night Match Card ---
-    val currentEventBouts: List<Bout> = listOf(
-        // 1. MAIN EVENT: Sedo vs Jhonny (Middle Weight MMA Bout)
+    // =========================================================================
+    // ETFC 003 FIXTURES (UPCOMING IN 3 MONTHS: NOVEMBER 28, 2026)
+    // =========================================================================
+    val etfc003Fixtures: List<Bout> = listOf(
+        // 1. MAIN EVENT: Sedo vs Jhonny II (Undisputed Middleweight Championship Bout)
         Bout(
-            id = "bout_etfc002_main",
-            eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            id = "bout_etfc003_main_sedo_jhonny",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
             boutType = BoutType.MAIN_EVENT,
             weightClass = WeightClass.MIDDLEWEIGHT,
             matchCategory = MatchCategory.MMA,
-            matchTitle = "MIDDLE WEIGHT MMA BOUT",
-            fighterRed = fighters[0], // Sedo
-            fighterBlue = fighters[1], // Jhonny
+            matchTitle = "UNDISPUTED MIDDLEWEIGHT WORLD CHAMPIONSHIP",
+            fighterRed = fighters[0], // Sedo "The Demolisher"
+            fighterBlue = fighters[1], // Jhonny "The Lion"
             isTitleFight = true,
             scheduledRounds = 5,
-            status = BoutStatus.LIVE,
-            liveRound = 3,
-            liveClockSeconds = 174,
-            redSignificantStrikes = 46,
-            blueSignificantStrikes = 53,
-            redTotalStrikes = 68,
-            blueTotalStrikes = 76,
-            redTakedowns = 1,
-            blueTakedowns = 2,
-            redControlTimeSec = 118,
-            blueControlTimeSec = 142
+            status = BoutStatus.UPCOMING,
+            liveRound = 1,
+            liveClockSeconds = 300
         ),
-        // 2. Elezar vs Kaleab (MMA Bout)
+        // 2. CO-MAIN: Elezar vs Kaleab (Welterweight #1 Contender Bout)
         Bout(
-            id = "bout_etfc002_elezar_kaleab",
-            eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            id = "bout_etfc003_elezar_kaleab",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
             boutType = BoutType.CO_MAIN,
             weightClass = WeightClass.WELTERWEIGHT,
             matchCategory = MatchCategory.MMA,
-            matchTitle = "MMA BOUT",
+            matchTitle = "WELTERWEIGHT CONTENDER SHOWDOWN",
             fighterRed = fighters[2], // Elezar
             fighterBlue = fighters[3], // Kaleab
             isTitleFight = false,
             scheduledRounds = 3,
             status = BoutStatus.UPCOMING
         ),
-        // 3. Edris vs Boyka (MMA Bout)
+        // 3. MAIN CARD: Edris vs Boyka (Lightweight MMA Showdown)
         Bout(
-            id = "bout_etfc002_edris_boyka",
-            eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            id = "bout_etfc003_edris_boyka",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
             boutType = BoutType.MAIN_CARD,
             weightClass = WeightClass.LIGHTWEIGHT,
             matchCategory = MatchCategory.MMA,
-            matchTitle = "MMA BOUT",
+            matchTitle = "LIGHTWEIGHT MMA BOUT",
             fighterRed = fighters[4], // Edris
             fighterBlue = fighters[5], // Boyka
             isTitleFight = false,
             scheduledRounds = 3,
             status = BoutStatus.UPCOMING
         ),
-        // 4. Robel vs Nikatehilina (MMA Bout)
+        // 4. MAIN CARD: Robel vs Nikatehilina (Featherweight Cage Battle)
         Bout(
-            id = "bout_etfc002_robel_nikatehilina",
-            eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            id = "bout_etfc003_robel_nikatehilina",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
             boutType = BoutType.MAIN_CARD,
             weightClass = WeightClass.FEATHERWEIGHT,
             matchCategory = MatchCategory.MMA,
-            matchTitle = "MMA BOUT",
+            matchTitle = "FEATHERWEIGHT MMA BOUT",
             fighterRed = fighters[6], // Robel
             fighterBlue = fighters[7], // Nikatehilina
             isTitleFight = false,
             scheduledRounds = 3,
             status = BoutStatus.UPCOMING
         ),
-        // 5. Biniam vs Esubalew (Boxing Match)
+        // 5. PRO BOXING: Biniam vs Esubalew (Welterweight Boxing Title Eliminator)
+        Bout(
+            id = "bout_etfc003_biniam_esubalew",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
+            boutType = BoutType.MAIN_CARD,
+            weightClass = WeightClass.WELTERWEIGHT,
+            matchCategory = MatchCategory.BOXING,
+            matchTitle = "WELTERWEIGHT PRO BOXING (6 ROUNDS)",
+            fighterRed = fighters[8], // Biniam
+            fighterBlue = fighters[9], // Esubalew
+            isTitleFight = false,
+            scheduledRounds = 6,
+            status = BoutStatus.UPCOMING
+        ),
+        // 6. PRO BOXING: Haymanot vs Abreham (Lightweight Boxing Bout)
+        Bout(
+            id = "bout_etfc003_haymanot_abreham",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
+            boutType = BoutType.MAIN_CARD,
+            weightClass = WeightClass.LIGHTWEIGHT,
+            matchCategory = MatchCategory.BOXING,
+            matchTitle = "LIGHTWEIGHT PRO BOXING",
+            fighterRed = fighters[10], // Haymanot
+            fighterBlue = fighters[11], // Abreham
+            isTitleFight = false,
+            scheduledRounds = 4,
+            status = BoutStatus.UPCOMING
+        ),
+        // 7. PRO BOXING: Desalegn vs Surafel (Middleweight Boxing Clash)
+        Bout(
+            id = "bout_etfc003_desalegn_surafel",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
+            boutType = BoutType.MAIN_CARD,
+            weightClass = WeightClass.MIDDLEWEIGHT,
+            matchCategory = MatchCategory.BOXING,
+            matchTitle = "MIDDLEWEIGHT PRO BOXING",
+            fighterRed = fighters[12], // Desalegn
+            fighterBlue = fighters[13], // Surafel
+            isTitleFight = false,
+            scheduledRounds = 4,
+            status = BoutStatus.UPCOMING
+        ),
+        // 8. MUAY THAI: Rebik 🇪🇹 vs Stephen 🇸🇸 (International Featherweight Championship)
+        Bout(
+            id = "bout_etfc003_rebik_stephen",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
+            boutType = BoutType.EARLY_PRELIMS,
+            weightClass = WeightClass.FEATHERWEIGHT,
+            matchCategory = MatchCategory.MUAY_THAI,
+            matchTitle = "EAST AFRICA MUAY THAI CHAMPIONSHIP",
+            fighterRed = fighters[14], // Rebik
+            fighterBlue = fighters[15], // Stephen
+            isTitleFight = true,
+            scheduledRounds = 3,
+            status = BoutStatus.UPCOMING
+        ),
+        // 9. MUAY THAI: Habtamu vs Frezer (Bantamweight Muay Thai Bout)
+        Bout(
+            id = "bout_etfc003_habtamu_frezer",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
+            boutType = BoutType.EARLY_PRELIMS,
+            weightClass = WeightClass.BANTAMWEIGHT,
+            matchCategory = MatchCategory.MUAY_THAI,
+            matchTitle = "BANTAMWEIGHT MUAY THAI BOUT",
+            fighterRed = fighters[16], // Habtamu
+            fighterBlue = fighters[17], // Frezer
+            isTitleFight = false,
+            scheduledRounds = 3,
+            status = BoutStatus.UPCOMING
+        ),
+        // 10. MUAY THAI: Zahara vs Yabsira (Women's Flyweight Championship)
+        Bout(
+            id = "bout_etfc003_zahara_yabsira",
+            eventName = "ETFC 003: Champions Collide",
+            eventVenue = "Adwa 00 Museum Arena — November 28, 2026",
+            boutType = BoutType.EARLY_PRELIMS,
+            weightClass = WeightClass.WOMENS_FLYWEIGHT,
+            matchCategory = MatchCategory.MUAY_THAI,
+            matchTitle = "WOMEN'S FLYWEIGHT MUAY THAI TITLE",
+            fighterRed = fighters[18], // Zahara
+            fighterBlue = fighters[19], // Yabsira
+            isTitleFight = true,
+            scheduledRounds = 3,
+            status = BoutStatus.UPCOMING
+        )
+    )
+
+    // =========================================================================
+    // ETFC 002 PAST RESULTS (COMPLETED LAST WEEK: AUGUST 27, 2026)
+    // =========================================================================
+    val etfc002PastBouts: List<Bout> = listOf(
+        // 1. MAIN EVENT: Sedo vs Jhonny
+        Bout(
+            id = "bout_etfc002_main",
+            eventName = "ETFC 002: Adwa Fight Night",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
+            boutType = BoutType.MAIN_EVENT,
+            weightClass = WeightClass.MIDDLEWEIGHT,
+            matchCategory = MatchCategory.MMA,
+            matchTitle = "MIDDLE WEIGHT MMA CHAMPIONSHIP",
+            fighterRed = fighters[0], // Sedo
+            fighterBlue = fighters[1], // Jhonny
+            isTitleFight = true,
+            scheduledRounds = 5,
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[0].id,
+            resultMethod = "KO (Adwa Hammer) • Round 3 (2:48)",
+            redSignificantStrikes = 58,
+            blueSignificantStrikes = 42,
+            redTotalStrikes = 84,
+            blueTotalStrikes = 65,
+            redTakedowns = 2,
+            blueTakedowns = 1,
+            redControlTimeSec = 180,
+            blueControlTimeSec = 90
+        ),
+        // 2. Elezar vs Kaleab
+        Bout(
+            id = "bout_etfc002_elezar_kaleab",
+            eventName = "ETFC 002: Adwa Fight Night",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
+            boutType = BoutType.CO_MAIN,
+            weightClass = WeightClass.WELTERWEIGHT,
+            matchCategory = MatchCategory.MMA,
+            matchTitle = "WELTERWEIGHT MMA BOUT",
+            fighterRed = fighters[2], // Elezar
+            fighterBlue = fighters[3], // Kaleab
+            isTitleFight = false,
+            scheduledRounds = 3,
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[3].id,
+            resultMethod = "TKO (Ground & Pound) • Round 2 (3:12)",
+            redSignificantStrikes = 28,
+            blueSignificantStrikes = 46,
+            redTotalStrikes = 35,
+            blueTotalStrikes = 62,
+            redTakedowns = 0,
+            blueTakedowns = 3
+        ),
+        // 3. Edris vs Boyka
+        Bout(
+            id = "bout_etfc002_edris_boyka",
+            eventName = "ETFC 002: Adwa Fight Night",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
+            boutType = BoutType.MAIN_CARD,
+            weightClass = WeightClass.LIGHTWEIGHT,
+            matchCategory = MatchCategory.MMA,
+            matchTitle = "LIGHTWEIGHT MMA BOUT",
+            fighterRed = fighters[4], // Edris
+            fighterBlue = fighters[5], // Boyka
+            isTitleFight = false,
+            scheduledRounds = 3,
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[4].id,
+            resultMethod = "Unanimous Decision (30-27, 30-27, 29-28)",
+            redSignificantStrikes = 52,
+            blueSignificantStrikes = 38
+        ),
+        // 4. Robel vs Nikatehilina
+        Bout(
+            id = "bout_etfc002_robel_nikatehilina",
+            eventName = "ETFC 002: Adwa Fight Night",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
+            boutType = BoutType.MAIN_CARD,
+            weightClass = WeightClass.FEATHERWEIGHT,
+            matchCategory = MatchCategory.MMA,
+            matchTitle = "FEATHERWEIGHT MMA BOUT",
+            fighterRed = fighters[6], // Robel
+            fighterBlue = fighters[7], // Nikatehilina
+            isTitleFight = false,
+            scheduledRounds = 3,
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[6].id,
+            resultMethod = "Submission (Guillotine Choke) • Round 1 (4:15)",
+            redSignificantStrikes = 19,
+            blueSignificantStrikes = 14
+        ),
+        // 5. Biniam vs Esubalew
         Bout(
             id = "bout_etfc002_biniam_esubalew",
             eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
             boutType = BoutType.MAIN_CARD,
             weightClass = WeightClass.WELTERWEIGHT,
             matchCategory = MatchCategory.BOXING,
@@ -861,13 +1038,17 @@ class EtfcRepository(
             fighterBlue = fighters[9], // Esubalew
             isTitleFight = false,
             scheduledRounds = 4,
-            status = BoutStatus.UPCOMING
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[8].id,
+            resultMethod = "Unanimous Decision (40-36, 39-37, 40-36)",
+            redSignificantStrikes = 64,
+            blueSignificantStrikes = 48
         ),
-        // 6. Haymanot vs Abreham (Boxing Match)
+        // 6. Haymanot vs Abreham
         Bout(
             id = "bout_etfc002_haymanot_abreham",
             eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
             boutType = BoutType.MAIN_CARD,
             weightClass = WeightClass.LIGHTWEIGHT,
             matchCategory = MatchCategory.BOXING,
@@ -876,13 +1057,17 @@ class EtfcRepository(
             fighterBlue = fighters[11], // Abreham
             isTitleFight = false,
             scheduledRounds = 4,
-            status = BoutStatus.UPCOMING
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[11].id,
+            resultMethod = "Split Decision (39-38, 38-39, 39-37)",
+            redSignificantStrikes = 41,
+            blueSignificantStrikes = 44
         ),
-        // 7. Desalegn vs Surafel (Boxing Match)
+        // 7. Desalegn vs Surafel
         Bout(
             id = "bout_etfc002_desalegn_surafel",
             eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
             boutType = BoutType.MAIN_CARD,
             weightClass = WeightClass.MIDDLEWEIGHT,
             matchCategory = MatchCategory.BOXING,
@@ -891,13 +1076,17 @@ class EtfcRepository(
             fighterBlue = fighters[13], // Surafel
             isTitleFight = false,
             scheduledRounds = 4,
-            status = BoutStatus.UPCOMING
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[12].id,
+            resultMethod = "Majority Decision (39-37, 39-37, 38-38)",
+            redSignificantStrikes = 55,
+            blueSignificantStrikes = 51
         ),
-        // 8. Rebik vs Stephen (Muay Thai Match)
+        // 8. Rebik vs Stephen
         Bout(
             id = "bout_etfc002_rebik_stephen",
             eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
             boutType = BoutType.EARLY_PRELIMS,
             weightClass = WeightClass.FEATHERWEIGHT,
             matchCategory = MatchCategory.MUAY_THAI,
@@ -906,13 +1095,17 @@ class EtfcRepository(
             fighterBlue = fighters[15], // Stephen
             isTitleFight = false,
             scheduledRounds = 3,
-            status = BoutStatus.UPCOMING
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[14].id,
+            resultMethod = "KO (Flying Knee) • Round 2 (1:55)",
+            redSignificantStrikes = 32,
+            blueSignificantStrikes = 20
         ),
-        // 9. Habtamu vs Frezer (Muay Thai Match)
+        // 9. Habtamu vs Frezer
         Bout(
             id = "bout_etfc002_habtamu_frezer",
             eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
             boutType = BoutType.EARLY_PRELIMS,
             weightClass = WeightClass.BANTAMWEIGHT,
             matchCategory = MatchCategory.MUAY_THAI,
@@ -921,13 +1114,17 @@ class EtfcRepository(
             fighterBlue = fighters[17], // Frezer
             isTitleFight = false,
             scheduledRounds = 3,
-            status = BoutStatus.UPCOMING
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[17].id,
+            resultMethod = "Unanimous Decision (30-27, 30-27, 29-28)",
+            redSignificantStrikes = 36,
+            blueSignificantStrikes = 42
         ),
-        // 10. Zahara vs Yabsira (Muay Thai Match - Female)
+        // 10. Zahara vs Yabsira
         Bout(
             id = "bout_etfc002_zahara_yabsira",
             eventName = "ETFC 002: Adwa Fight Night",
-            eventVenue = "Adwa 00 Museum — August 27",
+            eventVenue = "Adwa 00 Museum — August 27, 2026 (Completed)",
             boutType = BoutType.EARLY_PRELIMS,
             weightClass = WeightClass.WOMENS_FLYWEIGHT,
             matchCategory = MatchCategory.MUAY_THAI,
@@ -936,60 +1133,33 @@ class EtfcRepository(
             fighterBlue = fighters[19], // Yabsira
             isTitleFight = false,
             scheduledRounds = 3,
-            status = BoutStatus.UPCOMING
+            status = BoutStatus.COMPLETED,
+            winnerId = fighters[18].id,
+            resultMethod = "Unanimous Decision (30-27, 30-27, 30-27)",
+            redSignificantStrikes = 48,
+            blueSignificantStrikes = 33
         )
     )
 
-    // --- Pay-Per-View Packages ---
+    val currentEventBouts: List<Bout> get() = etfc003Fixtures
+
+    // --- Pay-Per-View Packages (Single Unified 600 ETB Pass for ETFC 003) ---
     val ppvTiers: List<PpvTier> = listOf(
         PpvTier(
-            id = "tier_main_event",
-            title = "ETFC 002 Live PPV Pass",
-            subtitle = "Full Access to Adwa Fight Night (All 10 Bouts)",
-            priceEtb = 250,
-            priceKes = 450,
-            badge = "BEST SELLER",
-            isPopular = true,
-            features = listOf(
-                "Full 1080p 60fps Ultra-ABR Live Arena Stream",
-                "Instant unlock with Telebirr & M-Pesa",
-                "Main Event: Sedo vs Jhonny (Middleweight Championship)",
-                "All MMA, Boxing & Muay Thai Match cards",
-                "Multi-Angle Corner Cam & Overhead Sky Cam",
-                "Ultra-lean 240p Data Saver mode (150 MB/hr)",
-                "48-hour Full VOD Replay & Offline Download access"
-            )
-        ),
-        PpvTier(
-            id = "tier_vip_ringside",
-            title = "VIP Octagon Pass + Season Access",
-            subtitle = "Adwa Fight Night + Next 3 ETFC World Championships",
+            id = "tier_etfc003_live",
+            title = "ETFC 003 Live Stream Pass",
+            subtitle = "Complete All-Bout Live Stream Access (All Main & Prelim Bouts)",
             priceEtb = 600,
             priceKes = 1100,
-            badge = "SEASON PASS",
-            isPopular = false,
+            badge = "ALL-ACCESS PASS",
+            isPopular = true,
             features = listOf(
-                "Everything in ETFC 002 Live Pass",
-                "Next 3 ETFC Major Fight Cards Included",
-                "Unlimited Full HD Offline Vault Downloads",
-                "Exclusive Corner Audio & Cornerman Live Feed",
-                "Adwa 00 Museum Backstage Fighter Interviews",
-                "Priority Low-Latency Edge Node Allocation"
-            )
-        ),
-        PpvTier(
-            id = "tier_prelims_pass",
-            title = "Early Prelims & Radio Stream",
-            subtitle = "Live Radio commentary + 480p Muay Thai/Boxing Bouts",
-            priceEtb = 90,
-            priceKes = 180,
-            badge = "BUDGET SAVER",
-            isPopular = false,
-            features = listOf(
-                "Live Muay Thai & Boxing early matches",
-                "Low-bandwidth live radio commentary (64 kbps)",
-                "Live punch-by-punch statistics tracker",
-                "Post-fight highlights & knockout replays"
+                "Full HD 1080p & 720p Single HLS Stream Feed",
+                "Instant unlock with Telebirr, CBE Birr & Chapa",
+                "Complete Event: All Main Card & Championship Bouts",
+                "Live Arena Real-time Chat Participation",
+                "Ultra-lean 240p Data Saver mode (150 MB/hr)",
+                "Full VOD Replay & Knockout Highlights"
             )
         )
     )
@@ -1660,209 +1830,117 @@ class EtfcRepository(
 
     // --- Home Screen Sliding Hero Items: Official Match Promo Posters ---
     val heroSlides: List<HeroSlide> = listOf(
-        // Poster 1: Sedo vs Jhonny (Championship Main Event)
+        // Poster 1: Sedo vs Jhonny II (ETFC 003 Championship Main Event)
         HeroSlide(
             id = "hero_poster_sedo_jhonny",
             type = HeroSlideType.MATCH_PROMO_POSTER,
-            tag = "🏆 UNDISPUTED TITLE FIGHT",
-            title = "SEDO vs JHONNY",
-            subtitle = "ETFC 002 Middleweight Championship Bout • Belt on the Line",
-            eventDateOrCountdown = "AUGUST 27 • ADWA 00 MUSEUM",
-            venueOrLocation = "Adwa 00 Museum, Addis Ababa",
-            primaryCtaText = "WATCH BOUT / BUY PPV",
+            tag = "🏆 ETFC 003 MAIN EVENT",
+            title = "SEDO vs JHONNY II",
+            subtitle = "Undisputed Middleweight Championship Rematch • In 3 Months",
+            eventDateOrCountdown = "NOVEMBER 28 • ADWA 00 MUSEUM",
+            venueOrLocation = "Adwa 00 Museum Arena, Addis Ababa",
+            primaryCtaText = "VIEW FIXTURE CARD",
             secondaryCtaText = "TALE OF THE TAPE",
             badgeColorHex = 0xFFFAB818,
-            discountText = "ETFC 002 CHAMPIONSHIP BOUT",
+            discountText = "ETFC 003 TITLE FIGHT",
             redFighterName = "SEDO",
             blueFighterName = "JHONNY",
             weightClassText = "MIDDLEWEIGHT (185 LBS)",
             matchCategoryBadge = "MMA BOUT",
-            eventEdition = "ETFC 002",
+            eventEdition = "ETFC 003",
             redFlag = "🇪🇹",
             blueFlag = "🇪🇹",
             hasChampionshipBelt = true,
-            targetTab = "LIVE_ARENA",
-            ppvTierId = "tier_main_event"
+            targetTab = "FIGHT_CARD",
+            ppvTierId = "tier_etfc003_live"
         ),
-        // Poster 2: Kaleab Girma vs Elezer Mussie
+        // Poster 2: Elezer vs Kaleab
         HeroSlide(
             id = "hero_poster_kaleab_elezer",
             type = HeroSlideType.MATCH_PROMO_POSTER,
-            tag = "🥊 FEATURED MMA BOUT",
-            title = "KALEAB GIRMA vs ELEZER MUSSIE",
-            subtitle = "High-Stakes Welterweight MMA Clash • Adwa Fight Night",
-            eventDateOrCountdown = "AUGUST 27 • ADWA 00 MUSEUM",
-            venueOrLocation = "Adwa 00 Museum, Addis Ababa",
+            tag = "🥊 ETFC 003 CO-MAIN",
+            title = "ELEZER vs KALEAB",
+            subtitle = "Welterweight #1 Contender Bout • Adwa 00 Museum Arena",
+            eventDateOrCountdown = "NOVEMBER 28 • ADWA 00 MUSEUM",
+            venueOrLocation = "Adwa 00 Museum Arena, Addis Ababa",
             primaryCtaText = "VIEW MATCHUP & STATS",
             secondaryCtaText = "TALE OF THE TAPE",
             badgeColorHex = 0xFFFF4B60,
-            discountText = "ADWA FIGHT NIGHT",
-            redFighterName = "KALEAB GIRMA",
-            blueFighterName = "ELEZER MUSSIE",
+            discountText = "ETFC 003 FIXTURE",
+            redFighterName = "ELEZER",
+            blueFighterName = "KALEAB",
             weightClassText = "WELTERWEIGHT (170 LBS)",
             matchCategoryBadge = "MMA BOUT",
-            eventEdition = "ADWA FIGHT NIGHT",
+            eventEdition = "ETFC 003",
             redFlag = "🇪🇹",
             blueFlag = "🇪🇹",
             hasChampionshipBelt = false,
             targetTab = "FIGHT_CARD"
         ),
-        // Poster 3: Yeamlaksira vs Zahara
+        // Poster 3: Zahara vs Yabsira
         HeroSlide(
             id = "hero_poster_yeamlaksira_zahara",
             type = HeroSlideType.MATCH_PROMO_POSTER,
-            tag = "🔥 CO-MAIN MUAY THAI",
-            title = "YEAMLAKSIRA vs ZAHARA",
-            subtitle = "Undefeated Striking Showdown • Women's Flyweight Muay Thai",
-            eventDateOrCountdown = "AUGUST 27 • ADWA 00 MUSEUM",
-            venueOrLocation = "Adwa 00 Museum, Addis Ababa",
+            tag = "🔥 MUAY THAI TITLE",
+            title = "ZAHARA vs YABSIRA",
+            subtitle = "Women's Flyweight Muay Thai Championship Showcase",
+            eventDateOrCountdown = "NOVEMBER 28 • ADWA 00 MUSEUM",
+            venueOrLocation = "Adwa 00 Museum Arena, Addis Ababa",
             primaryCtaText = "VIEW FIGHT DETAILS",
             secondaryCtaText = "FIGHTER PROFILE",
             badgeColorHex = 0xFF38BDF8,
-            discountText = "ETFC 002 MUAY THAI",
-            redFighterName = "YEAMLAKSIRA",
-            blueFighterName = "ZAHARA",
+            discountText = "ETFC 003 MUAY THAI",
+            redFighterName = "ZAHARA",
+            blueFighterName = "YABSIRA",
             weightClassText = "WOMEN'S FLYWEIGHT (125 LBS)",
             matchCategoryBadge = "MUAY THAI MATCH",
-            eventEdition = "ETFC 002",
+            eventEdition = "ETFC 003",
             redFlag = "🇪🇹",
             blueFlag = "🇪🇹",
-            hasChampionshipBelt = false,
+            hasChampionshipBelt = true,
             targetTab = "FIGHT_CARD"
         ),
-        // Poster 4: Desalegn vs Surafel
+        // Poster 4: Rebik Sani vs Stephen Okony
+        HeroSlide(
+            id = "hero_poster_rebik_stephen",
+            type = HeroSlideType.MATCH_PROMO_POSTER,
+            tag = "🌍 INTERNATIONAL TITLE",
+            title = "REBIK SANI vs STEPHEN OKONY",
+            subtitle = "Ethiopia 🇪🇹 vs South Sudan 🇸🇸 • East Africa Muay Thai Belt",
+            eventDateOrCountdown = "NOVEMBER 28 • ADWA 00 MUSEUM",
+            venueOrLocation = "Adwa 00 Museum Arena, Addis Ababa",
+            primaryCtaText = "EXPLORE INTERNATIONAL BOUT",
+            secondaryCtaText = "TALE OF THE TAPE",
+            badgeColorHex = 0xFF10B981,
+            discountText = "EAST AFRICA TITLE",
+            redFighterName = "REBIK SANI",
+            blueFighterName = "STEPHEN OKONY",
+            weightClassText = "FEATHERWEIGHT (145 LBS)",
+            matchCategoryBadge = "MUAY THAI MATCH",
+            eventEdition = "ETFC 003",
+            redFlag = "🇪🇹",
+            blueFlag = "🇸🇸",
+            hasChampionshipBelt = true,
+            targetTab = "FIGHT_CARD"
+        ),
+        // Poster 5: Desalegn vs Surafel
         HeroSlide(
             id = "hero_poster_desalegn_surafel",
             type = HeroSlideType.MATCH_PROMO_POSTER,
             tag = "⚡ PRO BOXING SHOWDOWN",
             title = "DESALEGN vs SURAFEL",
-            subtitle = "Middleweight Boxing Slugfest • Adwa Fight Night 002",
-            eventDateOrCountdown = "AUGUST 27 • ADWA 00 MUSEUM",
-            venueOrLocation = "Adwa 00 Museum, Addis Ababa",
-            primaryCtaText = "VIEW BOXING CARD",
+            subtitle = "Middleweight Boxing Slugfest • ETFC 003 Main Card",
+            eventDateOrCountdown = "NOVEMBER 28 • ADWA 00 MUSEUM",
+            venueOrLocation = "Adwa 00 Museum Arena, Addis Ababa",
+            primaryCtaText = "VIEW BOXING FIXTURE",
             secondaryCtaText = "TALE OF THE TAPE",
             badgeColorHex = 0xFFFAB818,
-            discountText = "ETFC 002 BOXING",
+            discountText = "ETFC 003 BOXING",
             redFighterName = "DESALEGN",
             blueFighterName = "SURAFEL",
             weightClassText = "MIDDLEWEIGHT (160 LBS)",
             matchCategoryBadge = "BOXING MATCH",
-            eventEdition = "ETFC 002",
-            redFlag = "🇪🇹",
-            blueFlag = "🇪🇹",
-            hasChampionshipBelt = false,
-            targetTab = "FIGHT_CARD"
-        ),
-        // Poster 5: Rebik Sani vs Stephen Okony
-        HeroSlide(
-            id = "hero_poster_rebik_stephen",
-            type = HeroSlideType.MATCH_PROMO_POSTER,
-            tag = "🌍 INTERNATIONAL CLASH",
-            title = "REBIK SANI vs STEPHEN OKONY",
-            subtitle = "Ethiopia 🇪🇹 vs South Sudan 🇸🇸 • Featherweight Muay Thai War",
-            eventDateOrCountdown = "AUGUST 27 • ADWA 00 MUSEUM",
-            venueOrLocation = "Adwa 00 Museum, Addis Ababa",
-            primaryCtaText = "EXPLORE INTERNATIONAL BOUT",
-            secondaryCtaText = "TALE OF THE TAPE",
-            badgeColorHex = 0xFF10B981,
-            discountText = "EAST AFRICA RIVALRY",
-            redFighterName = "REBIK SANI",
-            blueFighterName = "STEPHEN OKONY",
-            weightClassText = "FEATHERWEIGHT (145 LBS)",
-            matchCategoryBadge = "MUAY THAI MATCH",
-            eventEdition = "ETFC 002",
-            redFlag = "🇪🇹",
-            blueFlag = "🇸🇸",
-            hasChampionshipBelt = false,
-            targetTab = "FIGHT_CARD"
-        ),
-        // Poster 6: Mesfin vs Abenezer
-        HeroSlide(
-            id = "hero_poster_mesfin_abenezer",
-            type = HeroSlideType.MATCH_PROMO_POSTER,
-            tag = "🥊 EXPLOSIVE BOXING",
-            title = "MESFIN vs ABENEZER",
-            subtitle = "Lightweight Boxing Grudge Match • 4 Rounds of High Octane Action",
-            eventDateOrCountdown = "AUGUST 27 • ADWA 00 MUSEUM",
-            venueOrLocation = "Adwa 00 Museum, Addis Ababa",
-            primaryCtaText = "VIEW FIGHT CARD",
-            secondaryCtaText = "TALE OF THE TAPE",
-            badgeColorHex = 0xFFFF4B60,
-            discountText = "ETFC 002 BOXING",
-            redFighterName = "MESFIN",
-            blueFighterName = "ABENEZER",
-            weightClassText = "LIGHTWEIGHT (135 LBS)",
-            matchCategoryBadge = "BOXING MATCH",
-            eventEdition = "ETFC 002",
-            redFlag = "🇪🇹",
-            blueFlag = "🇪🇹",
-            hasChampionshipBelt = false,
-            targetTab = "FIGHT_CARD"
-        ),
-        // Poster 7: Esubalew vs Biniyam
-        HeroSlide(
-            id = "hero_poster_esubalew_biniyam",
-            type = HeroSlideType.MATCH_PROMO_POSTER,
-            tag = "🥊 PRO BOXING BATTLE",
-            title = "ESUBALEW vs BINIYAM",
-            subtitle = "Welterweight Boxing Technical Showcase • Adwa Fight Night",
-            eventDateOrCountdown = "AUGUST 27 • ADWA 00 MUSEUM",
-            venueOrLocation = "Adwa 00 Museum, Addis Ababa",
-            primaryCtaText = "VIEW FIGHT DETAILS",
-            secondaryCtaText = "TALE OF THE TAPE",
-            badgeColorHex = 0xFFFAB818,
-            discountText = "ETFC 002 BOXING",
-            redFighterName = "ESUBALEW",
-            blueFighterName = "BINIYAM",
-            weightClassText = "WELTERWEIGHT (147 LBS)",
-            matchCategoryBadge = "BOXING MATCH",
-            eventEdition = "ETFC 002",
-            redFlag = "🇪🇹",
-            blueFlag = "🇪🇹",
-            hasChampionshipBelt = false,
-            targetTab = "FIGHT_CARD"
-        ),
-        // Poster 8: Robel vs Nikatehilina
-        HeroSlide(
-            id = "hero_poster_robel_nikatehilina",
-            type = HeroSlideType.MATCH_PROMO_POSTER,
-            tag = "💥 MAIN CARD MMA",
-            title = "ROBEL vs NIKATEHILINA",
-            subtitle = "Featherweight Cage Bout • Striking vs Submissions",
-            eventDateOrCountdown = "AUGUST 27 • ADWA 00 MUSEUM",
-            venueOrLocation = "Adwa 00 Museum, Addis Ababa",
-            primaryCtaText = "VIEW MMA BOUT",
-            secondaryCtaText = "TALE OF THE TAPE",
-            badgeColorHex = 0xFF38BDF8,
-            discountText = "ETFC 002 MMA",
-            redFighterName = "ROBEL",
-            blueFighterName = "NIKATEHILINA",
-            weightClassText = "FEATHERWEIGHT (145 LBS)",
-            matchCategoryBadge = "MMA MATCH",
-            eventEdition = "ETFC 002",
-            redFlag = "🇪🇹",
-            blueFlag = "🇪🇹",
-            hasChampionshipBelt = false,
-            targetTab = "FIGHT_CARD"
-        ),
-        // Poster 9: Habtamu vs Frezer
-        HeroSlide(
-            id = "hero_poster_habtamu_frezer",
-            type = HeroSlideType.MATCH_PROMO_POSTER,
-            tag = "⚡ MUAY THAI WAR",
-            title = "HABTAMU vs FREZER",
-            subtitle = "Bantamweight Muay Thai Clinch & Elbow Showcase",
-            eventDateOrCountdown = "AUGUST 27 • ADWA 00 MUSEUM",
-            venueOrLocation = "Adwa 00 Museum, Addis Ababa",
-            primaryCtaText = "VIEW FIGHT CARD",
-            secondaryCtaText = "TALE OF THE TAPE",
-            badgeColorHex = 0xFF10B981,
-            discountText = "ETFC 002 MUAY THAI",
-            redFighterName = "HABTAMU",
-            blueFighterName = "FREZER",
-            weightClassText = "BANTAMWEIGHT (135 LBS)",
-            matchCategoryBadge = "MUAY THAI MATCH",
-            eventEdition = "ETFC 002",
+            eventEdition = "ETFC 003",
             redFlag = "🇪🇹",
             blueFlag = "🇪🇹",
             hasChampionshipBelt = false,

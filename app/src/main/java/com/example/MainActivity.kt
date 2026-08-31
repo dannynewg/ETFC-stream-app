@@ -82,7 +82,9 @@ import com.example.ui.screens.FightCardScreen
 import com.example.ui.screens.FightersScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LiveStreamScreen
+import com.example.ui.screens.OnboardingAuthScreen
 import com.example.ui.screens.SettingsScreen
+import com.example.ui.screens.SplashScreen
 import com.example.ui.screens.TicketsPpvScreen
 import com.example.ui.components.YouTubeInAppPlayerDialog
 import androidx.compose.material.icons.filled.Settings
@@ -164,6 +166,9 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EtfcMainApp(viewModel: EtfcViewModel) {
+    var isSplashFinished by remember { mutableStateOf(false) }
+    var hasCompletedFirstTimeOnboarding by remember { mutableStateOf(false) }
+
     val uiState by viewModel.uiState.collectAsState()
     val downloadedFights by viewModel.downloadedFights.collectAsState()
     val ppvPasses by viewModel.ppvPasses.collectAsState()
@@ -171,6 +176,21 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
     val favoriteFighters by viewModel.favoriteFighters.collectAsState()
     val dynamicFighters by viewModel.dynamicFighters.collectAsState()
     val dynamicMatches by viewModel.dynamicMatches.collectAsState()
+
+    // 1. Initial Launch Splash Screen
+    if (!isSplashFinished) {
+        SplashScreen(onSplashFinished = { isSplashFinished = true })
+        return
+    }
+
+    // 2. First-time Install Sign In / Sign Up Gate
+    if (!hasCompletedFirstTimeOnboarding && uiState.currentUser == null) {
+        OnboardingAuthScreen(
+            viewModel = viewModel,
+            onDismiss = { hasCompletedFirstTimeOnboarding = true }
+        )
+        return
+    }
 
     val currentRole = uiState.currentUser?.role ?: UserRole.GUEST
     val roleColor = Color(currentRole.colorHex)
@@ -383,32 +403,14 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
                         modifier = Modifier.testTag("nav_tab_home")
                     )
 
-                    // Live Arena
-                    NavigationBarItem(
-                        selected = uiState.currentTab == AppTab.LIVE_ARENA,
-                        onClick = { viewModel.selectTab(AppTab.LIVE_ARENA) },
-                        icon = {
-                            Icon(imageVector = Icons.Default.Tv, contentDescription = "Live Arena")
-                        },
-                        label = { Text("Live", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = EtfcLiveRed,
-                            selectedTextColor = EtfcLiveRed,
-                            indicatorColor = EtfcLiveRed.copy(alpha = 0.15f),
-                            unselectedIconColor = EtfcTextMuted,
-                            unselectedTextColor = EtfcTextMuted
-                        ),
-                        modifier = Modifier.testTag("nav_tab_live")
-                    )
-
-                    // Fight Card
+                    // Fixture Card
                     NavigationBarItem(
                         selected = uiState.currentTab == AppTab.FIGHT_CARD,
                         onClick = { viewModel.selectTab(AppTab.FIGHT_CARD) },
                         icon = {
-                            Icon(imageVector = Icons.Default.SportsMma, contentDescription = "Fight Card")
+                            Icon(imageVector = Icons.Default.SportsMma, contentDescription = "Fixtures")
                         },
-                        label = { Text("Fights", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                        label = { Text("Fixtures", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = EtfcGold,
                             selectedTextColor = EtfcGold,
@@ -419,25 +421,7 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
                         modifier = Modifier.testTag("nav_tab_card")
                     )
 
-                    // PPV Passes
-                    NavigationBarItem(
-                        selected = uiState.currentTab == AppTab.PPV_PASSES,
-                        onClick = { viewModel.selectTab(AppTab.PPV_PASSES) },
-                        icon = {
-                            Icon(imageVector = Icons.Default.ConfirmationNumber, contentDescription = "PPV Passes")
-                        },
-                        label = { Text("PPV", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = EtfcGold,
-                            selectedTextColor = EtfcGold,
-                            indicatorColor = EtfcGold.copy(alpha = 0.15f),
-                            unselectedIconColor = EtfcTextMuted,
-                            unselectedTextColor = EtfcTextMuted
-                        ),
-                        modifier = Modifier.testTag("nav_tab_ppv")
-                    )
-
-                    // Fighters
+                    // Fighters Roster
                     NavigationBarItem(
                         selected = uiState.currentTab == AppTab.FIGHTERS,
                         onClick = { viewModel.selectTab(AppTab.FIGHTERS) },
@@ -540,30 +524,31 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
                             onToggleVipOnly = { viewModel.toggleVipOnlyChat() },
                             onOpenAuthDialog = { viewModel.openAuthDialog() },
                             onOpenProfileDrawer = { viewModel.openProfileDrawer() },
-                            onPredictWinner = { viewModel.submitPrediction(bout, it, "KO/TKO", 3) }
+                            onPredictWinner = { viewModel.submitPrediction(bout, it, "KO/TKO", 3) },
+                            onBackToHome = { viewModel.selectTab(AppTab.HOME) }
                         )
+                    } ?: run {
+                        HomeScreen(viewModel = viewModel)
                     }
                 }
 
                 AppTab.FIGHT_CARD -> {
                     FightCardScreen(
-                        bouts = dynamicMatches.ifEmpty { viewModel.bouts },
+                        bouts = viewModel.etfc003Fixtures,
+                        etfc003Bouts = viewModel.etfc003Fixtures,
+                        etfc002PastBouts = viewModel.etfc002PastBouts,
                         onSelectBoutForStream = {
                             viewModel.selectBout(it)
                             viewModel.selectTab(AppTab.LIVE_ARENA)
                         },
                         onOpenTaleOfTheTape = { red, blue -> viewModel.openTaleOfTheTape(red, blue) },
-                        onDownloadBout = { bout, quality -> viewModel.downloadFightForOffline(bout, quality) }
+                        onDownloadBout = { bout, quality -> viewModel.downloadFightForOffline(bout, quality) },
+                        onWatchReplay = { viewModel.openYouTubePlayer(null) }
                     )
                 }
 
                 AppTab.PPV_PASSES -> {
-                    TicketsPpvScreen(
-                        ppvTiers = viewModel.ppvTiers,
-                        activePass = activePass,
-                        allPasses = ppvPasses,
-                        onSelectTierToBuy = { tier -> viewModel.openCheckoutDialog(tier) }
-                    )
+                    HomeScreen(viewModel = viewModel)
                 }
 
                 AppTab.FIGHTERS -> {
@@ -680,20 +665,13 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
         )
     }
 
-    // 5. Authentication (Sign In & Register) Dialog
-    AuthDialog(
-        isVisible = uiState.isAuthDialogVisible,
-        currentTab = uiState.authDialogTab,
-        errorMessage = uiState.authErrorMessage,
-        demoUsers = uiState.allDemoUsers,
-        onTabSelected = { viewModel.setAuthTab(it) },
-        onLogin = { id, pass -> viewModel.login(id, pass) },
-        onRegister = { email, handle, name, pass, phone, code, flag ->
-            viewModel.register(email, handle, name, pass, phone, code, flag)
-        },
-        onQuickSwitchUser = { viewModel.quickSwitchUser(it) },
-        onDismiss = { viewModel.closeAuthDialog() }
-    )
+    // 5. Authentication (Sign In & Register) Screen / Dialog
+    if (uiState.isAuthDialogVisible) {
+        OnboardingAuthScreen(
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeAuthDialog() }
+        )
+    }
 
     // 6. User Profile & RBAC Drawer
     UserProfileDrawer(

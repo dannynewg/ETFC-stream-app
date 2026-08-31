@@ -120,7 +120,6 @@ fun VideoPlayerView(
     SecureScreenEffect(isSecured = !isPaused)
 
     var showQualityMenu by remember { mutableStateOf(false) }
-    var showAngleMenu by remember { mutableStateOf(false) }
     var showChatOverlay by remember { mutableStateOf(false) }
     var showFightStatsOverlay by remember { mutableStateOf(false) }
 
@@ -569,7 +568,7 @@ fun VideoPlayerView(
                     }
                 }
 
-                // Camera Angle Pill Overlay
+                // Live Stream Feed Badge Overlay
                 Surface(
                     color = Color.Black.copy(alpha = 0.75f),
                     shape = RoundedCornerShape(12.dp),
@@ -577,22 +576,20 @@ fun VideoPlayerView(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
-                        .clickable { showAngleMenu = !showAngleMenu }
-                        .testTag("camera_angle_btn")
+                        .testTag("live_stream_badge")
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Videocam,
-                            contentDescription = null,
-                            tint = EtfcRedPrimary,
-                            modifier = Modifier.size(12.dp)
-                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = EtfcLiveRed,
+                            modifier = Modifier.size(6.dp)
+                        ) {}
                         Text(
-                            text = currentCameraAngle.shortName,
+                            text = "HLS LIVE FEED",
                             color = Color.White,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold
@@ -704,46 +701,6 @@ fun VideoPlayerView(
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
-                        }
-                    }
-                }
-            }
-
-            // Camera Angle Selection Dropdown View
-            AnimatedVisibility(visible = showAngleMenu) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(EtfcSurface)
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    CameraAngle.entries.forEach { angle ->
-                        val isSelected = angle == currentCameraAngle
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable {
-                                    onCameraAngleSelected(angle)
-                                    showAngleMenu = false
-                                },
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) EtfcRedPrimary else EtfcCardInner,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isSelected) EtfcRedPrimary else EtfcBorderSubtle
-                            )
-                        ) {
-                            Text(
-                                text = angle.shortName,
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier
-                                    .padding(vertical = 8.dp)
-                                    .align(Alignment.CenterVertically),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
                         }
                     }
                 }

@@ -114,8 +114,8 @@ data class EtfcUiState(
     val selectedUserForModAction: Pair<String, String>? = null, // (userId, handle)
 
     // Home Screen & VOD / News Feed State
-    val isLiveEventOngoing: Boolean = true,
-    val isLivePreviewExpanded: Boolean = true,
+    val isLiveEventOngoing: Boolean = false,
+    val isLivePreviewExpanded: Boolean = false,
     val selectedVideoCategory: VideoCategory = VideoCategory.ALL,
     val selectedNewsArticle: NewsArticle? = null,
     val activePlayingVod: PreviousFightVideo? = null,
@@ -180,6 +180,8 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
     val fighters: List<Fighter>
     val bouts: List<Bout>
+    val etfc003Fixtures: List<Bout> get() = repository.etfc003Fixtures
+    val etfc002PastBouts: List<Bout> get() = repository.etfc002PastBouts
     val ppvTiers: List<PpvTier>
     val cdnNodes: List<CdnNodeInfo>
     val heroSlides: List<HeroSlide>
@@ -1504,5 +1506,43 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissGitHubSyncStatus() {
         _uiState.value = _uiState.value.copy(githubSyncStatusMessage = null)
+    }
+
+    fun toggleLowLatencyMode(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isLowLatencyMode = enabled)
+    }
+
+    fun toggleHardwareAcceleration(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isHardwareAccelerationEnabled = enabled)
+    }
+
+    fun toggleLiveStartAlert(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isLiveStartAlertEnabled = enabled)
+    }
+
+    fun toggleBoutStartAlert(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isBoutStartAlertEnabled = enabled)
+    }
+
+    fun toggleKnockoutAlert(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isKnockoutAlertEnabled = enabled)
+    }
+
+    fun toggleDrmScreenShield(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isDrmScreenShieldEnabled = enabled)
+    }
+
+    fun toggleBiometricAuth(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isBiometricAuthEnabled = enabled)
+    }
+
+    fun updateProfile(name: String, handle: String, phone: String) {
+        val current = _uiState.value.currentUser ?: return
+        val updated = current.copy(
+            displayName = name,
+            handle = handle,
+            phoneNumber = phone
+        )
+        _uiState.value = _uiState.value.copy(currentUser = updated)
     }
 }

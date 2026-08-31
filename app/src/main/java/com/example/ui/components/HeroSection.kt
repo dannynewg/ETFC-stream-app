@@ -63,7 +63,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -100,6 +103,120 @@ import com.example.ui.theme.EtfcTextPrimary
 import com.example.ui.theme.EtfcTextSecondary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+/**
+ * Sleek, high-contrast strip banner for ETFC 003 countdown & single PPV pass (600 ETB)
+ */
+@Composable
+fun Etfc003LiveCountdownStripBanner(
+    isPassUnlocked: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "banner_pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+
+    // Countdown timer state (ETFC 003 scheduled 3 months from now: November 28, 2026)
+    var secondsRemaining by remember { mutableLongStateOf(86400L * 89 + 3600L * 18 + 60L * 42 + 25L) }
+    LaunchedEffect(Unit) {
+        while (secondsRemaining > 0L) {
+            delay(1000L)
+            secondsRemaining -= 1L
+        }
+    }
+
+    val days = secondsRemaining / 86400
+    val hours = (secondsRemaining % 86400) / 3600
+    val minutes = (secondsRemaining % 3600) / 60
+    val seconds = secondsRemaining % 60
+    val countdownText = String.format("%02dd : %02dh : %02dm : %02ds", days, hours, minutes, seconds)
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = EtfcSurface),
+        border = BorderStroke(1.dp, if (isPassUnlocked) EtfcSuccess else EtfcGold),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .clickable { onClick() }
+            .testTag("etfc003_strip_banner")
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Left: Title & Pulse
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = (if (isPassUnlocked) EtfcSuccess else EtfcGold).copy(alpha = pulseAlpha),
+                    modifier = Modifier.size(10.dp)
+                ) {}
+
+                Column {
+                    Text(
+                        text = "ETFC 003",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Black,
+                        color = EtfcGold,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = if (isPassUnlocked) "PPV ACCESS UNLOCKED" else "IN 3 MONTHS • NOV 28, 2026",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isPassUnlocked) EtfcSuccess else EtfcTextMuted
+                    )
+                }
+            }
+
+            // Center: Live Countdown Display
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color.Black,
+                border = BorderStroke(0.5.dp, EtfcBorderSubtle),
+                modifier = Modifier.padding(horizontal = 6.dp)
+            ) {
+                Text(
+                    text = countdownText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+
+            // Right: CTA Price Badge / Action Button
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = if (isPassUnlocked) EtfcSuccess else EtfcGold,
+                modifier = Modifier.clickable { onClick() }
+            ) {
+                Text(
+                    text = if (isPassUnlocked) "WATCH" else "600 ETB",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color.Black,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                )
+            }
+        }
+    }
+}
 
 /**
  * Dominant Top Live Event Section:

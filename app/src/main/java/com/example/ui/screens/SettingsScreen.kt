@@ -24,32 +24,32 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PlayCircleFilled
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SmartDisplay
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SportsMma
 import androidx.compose.material.icons.filled.SwitchAccount
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Tv
-import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -113,8 +113,7 @@ import com.example.ui.viewmodel.AppTab
 import com.example.ui.viewmodel.EtfcViewModel
 
 /**
- * SettingsScreen:
- * Comprehensive User Settings & App Preferences screen.
+ * Professional Settings & User Profile Management Screen
  */
 @Composable
 fun SettingsScreen(
@@ -128,8 +127,10 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var isEditProfileDialogOpen by remember { mutableStateOf(false) }
-    var isPromoCodeDialogOpen by remember { mutableStateOf(false) }
-    var promoCodeInput by remember { mutableStateOf("") }
+    var editNameInput by remember { mutableStateOf(uiState.currentUser?.displayName ?: "") }
+    var editHandleInput by remember { mutableStateOf(uiState.currentUser?.handle ?: "") }
+    var editPhoneInput by remember { mutableStateOf(uiState.currentUser?.phoneNumber ?: "") }
+
     var isAboutDialogOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.settingsSnackbarMessage) {
@@ -147,879 +148,629 @@ fun SettingsScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Header Title
+            // =========================================================================
+            // 1. USER PROFILE & IDENTITY CARD
+            // =========================================================================
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = null,
-                                tint = EtfcGold,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text(
-                                text = "SETTINGS & PREFERENCES",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Black,
-                                color = EtfcTextPrimary,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-                        Text(
-                            text = "Manage your stream, profile, payments & notifications",
-                            fontSize = 11.sp,
-                            color = EtfcTextMuted
-                        )
-                    }
+                val user = uiState.currentUser
+                val isSuperAdmin = user?.email.equals("dannynewg@gmail.com", ignoreCase = true)
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = EtfcGold.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, EtfcGold)
-                    ) {
-                        Text(
-                            text = "v2.4.0",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EtfcGold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-
-            // 2. Profile & RBAC Account Card
-            item {
                 Card(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = EtfcCard),
-                    border = BorderStroke(1.dp, EtfcBorderGold),
-                    modifier = Modifier.fillMaxWidth()
+                    border = BorderStroke(1.dp, if (isSuperAdmin) EtfcGold else EtfcBorder),
+                    modifier = Modifier.fillMaxWidth().testTag("profile_card")
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(54.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(EtfcGold, EtfcRedPrimary)
-                                        )
-                                    )
-                                    .border(2.dp, EtfcGold, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = userRole.badgeEmoji,
-                                    fontSize = 24.sp
-                                )
-                            }
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = uiState.currentUser?.displayName ?: "Yonas Habesha",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = EtfcTextPrimary
-                                    )
-                                    Surface(
-                                        color = EtfcGold.copy(alpha = 0.2f),
-                                        shape = RoundedCornerShape(4.dp),
-                                        border = BorderStroke(0.5.dp, EtfcGold)
-                                    ) {
-                                        Text(
-                                            text = userRole.badgeTitle.uppercase(),
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = EtfcGold,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = uiState.currentUser?.email ?: "yonas.ethiopia@etfc.com",
-                                    fontSize = 12.sp,
-                                    color = EtfcTextSecondary
-                                )
-                                Text(
-                                    text = "Wallet: +251 ${uiState.phoneNumberInput} (${uiState.preferredMobileWallet.displayName})",
-                                    fontSize = 11.sp,
-                                    color = EtfcTextMuted
-                                )
-                            }
-                        }
-
-                        HorizontalDivider(color = EtfcBorderSubtle)
-
-                        // Role & Profile Actions
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = { viewModel.openAuthDialog(0) },
-                                shape = RoundedCornerShape(8.dp),
-                                border = BorderStroke(1.dp, EtfcBorder),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcTextPrimary),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(38.dp)
-                                    .testTag("switch_account_btn")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.SwitchAccount,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Switch Role / User", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                            Button(
-                                onClick = { viewModel.openProfileDrawer() },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = EtfcGold,
-                                    contentColor = Color.Black
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(38.dp)
-                                    .testTag("edit_profile_btn")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AccountCircle,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit Profile", fontSize = 11.sp, fontWeight = FontWeight.Black)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 2.5 ADMIN CMS & FIREBASE REALTIME CONTROL PANEL (ADMINS ONLY)
-            if (uiState.currentUser?.isAdmin == true || uiState.currentUser?.role == UserRole.ADMIN) {
-                item {
-                    Card(
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1408)),
-                        border = BorderStroke(1.5.dp, EtfcGold),
-                        modifier = Modifier.fillMaxWidth().testTag("admin_cms_settings_card")
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = EtfcGold.copy(alpha = 0.2f),
-                                    border = BorderStroke(1.dp, EtfcGold)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Security,
-                                        contentDescription = null,
-                                        tint = EtfcGold,
-                                        modifier = Modifier.padding(6.dp).size(22.dp)
-                                    )
-                                }
-                                Column {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = "ADMIN CMS & FIREBASE BROADCAST",
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 13.sp,
-                                            color = EtfcGold,
-                                            letterSpacing = 0.5.sp
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(4.dp),
-                                            color = EtfcSuccess.copy(alpha = 0.2f),
-                                            border = BorderStroke(0.5.dp, EtfcSuccess)
-                                        ) {
-                                            Text(
-                                                text = "ONLINE",
-                                                fontSize = 8.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = EtfcSuccess,
-                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        text = "Post match posters, YouTube links, update fighter stats & broadcast live over Firebase",
-                                        fontSize = 10.5.sp,
-                                        color = EtfcTextMuted
-                                    )
-                                }
-                            }
-
-                            HorizontalDivider(color = EtfcBorderGold.copy(alpha = 0.4f))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Button(
-                                    onClick = { viewModel.openAdminPortal() },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = EtfcGold,
-                                        contentColor = Color.Black
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(40.dp)
-                                        .testTag("launch_admin_portal_btn")
-                                ) {
-                                    Icon(imageVector = Icons.Default.Security, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("OPEN ADMIN PORTAL", fontSize = 11.sp, fontWeight = FontWeight.Black)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 3. YouTube Match Archive & In-App Playback Section
-            item {
-                SettingsSectionContainer(
-                    title = "YOUTUBE FIGHT ARCHIVE & PLAYLIST",
-                    subtitle = "Embedded in-app player integration for previous matches and event replays",
-                    icon = Icons.Default.SmartDisplay,
-                    iconTint = EtfcRedPrimary
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Official YouTube Playlist",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = EtfcTextPrimary
-                                )
-                                Text(
-                                    text = "Adwa Fight Night 002 archive & fight highlights",
-                                    fontSize = 11.sp,
-                                    color = EtfcTextMuted
-                                )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = EtfcCardInner,
+                                    border = BorderStroke(2.dp, if (isSuperAdmin) EtfcGold else EtfcBorderGold),
+                                    modifier = Modifier.size(54.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = user?.flagEmoji ?: "🇪🇹",
+                                            fontSize = 24.sp
+                                        )
+                                    }
+                                }
+
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = user?.displayName ?: "Fan Account",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = EtfcTextPrimary
+                                        )
+                                        if (isSuperAdmin) {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(text = "👑", fontSize = 14.sp)
+                                        }
+                                    }
+                                    Text(
+                                        text = user?.email ?: "guest@etfc.stream",
+                                        fontSize = 11.sp,
+                                        color = EtfcGold
+                                    )
+                                    Text(
+                                        text = "Handle: ${user?.handle ?: "@guest"} • ${user?.phoneNumber ?: "+251 911 234 567"}",
+                                        fontSize = 10.sp,
+                                        color = EtfcTextMuted
+                                    )
+                                }
                             }
 
-                            Button(
-                                onClick = { viewModel.openYouTubePlayer(null) },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = EtfcRedPrimary,
-                                    contentColor = Color.White
-                                ),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                modifier = Modifier.testTag("play_yt_playlist_btn")
+                            // Edit profile button
+                            IconButton(
+                                onClick = {
+                                    editNameInput = user?.displayName ?: ""
+                                    editHandleInput = user?.handle ?: ""
+                                    editPhoneInput = user?.phoneNumber ?: ""
+                                    isEditProfileDialogOpen = true
+                                },
+                                modifier = Modifier.testTag("edit_profile_btn")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.PlayCircleFilled,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("PLAY IN-APP", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                val intent = Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://youtube.com/playlist?list=PLeRATZC0Qfoo&si=dk9LKYg2Tdcg-uVm")
-                                )
-                                context.startActivity(intent)
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, EtfcBorder),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcGold),
-                            modifier = Modifier.fillMaxWidth().height(38.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.OpenInNew,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Open Playlist on YouTube App", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-
-            // 4. Video & Streaming Quality Settings
-            item {
-                SettingsSectionContainer(
-                    title = "STREAMING QUALITY & CDN ROUTING",
-                    subtitle = "Adaptive bitrate streaming and East Africa Edge node controls",
-                    icon = Icons.Default.Tv,
-                    iconTint = EtfcGold
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // Quality chips
-                        Text(
-                            text = "Default Broadcast Resolution",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EtfcTextPrimary
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            val qualities = listOf(
-                                StreamQuality.AUTO_ABR to "Auto ABR",
-                                StreamQuality.HD_1080P to "1080p 60fps",
-                                StreamQuality.HD_720P to "720p HD",
-                                StreamQuality.SMOOTH_480P to "480p SD",
-                                StreamQuality.SAVER_240P to "240p Saver"
-                            )
-
-                            qualities.forEach { (quality, label) ->
-                                val isSelected = uiState.streamQuality == quality
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.setStreamQuality(quality) },
-                                    label = {
-                                        Text(
-                                            text = label,
-                                            fontSize = 10.sp,
-                                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal
-                                        )
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = EtfcGold,
-                                        selectedLabelColor = Color.Black,
-                                        containerColor = EtfcCardInner,
-                                        labelColor = EtfcTextSecondary
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = isSelected,
-                                        borderColor = EtfcBorder,
-                                        selectedBorderColor = EtfcGold
-                                    ),
-                                    modifier = Modifier.testTag("quality_chip_${quality.name}")
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Profile",
+                                    tint = EtfcGold,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(14.dp))
                         HorizontalDivider(color = EtfcBorderSubtle)
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        // Switches: Low Latency, Data Saver, Hardware Acceleration
-                        SettingsSwitchRow(
-                            title = "Ultra Low Latency Mode (<30ms)",
-                            subtitle = "Direct live edge stream with minimal commentary delay",
-                            icon = Icons.Default.Speed,
-                            checked = uiState.isLowLatencyMode,
-                            onCheckedChange = { viewModel.toggleLowLatencySetting(it) }
-                        )
-
-                        SettingsSwitchRow(
-                            title = "Mobile Cellular Data Saver",
-                            subtitle = "Automatically caps video bitrate to 240p on cellular networks",
-                            icon = Icons.Default.Wifi,
-                            checked = uiState.isDataSaverActive,
-                            onCheckedChange = { viewModel.toggleDataSaverSetting(it) }
-                        )
-
-                        SettingsSwitchRow(
-                            title = "GPU Hardware Video Acceleration",
-                            subtitle = "Uses dedicated hardware decoders for smooth 60fps frame rendering",
-                            icon = Icons.Default.GraphicEq,
-                            checked = uiState.isHardwareAccelerationEnabled,
-                            onCheckedChange = { viewModel.toggleHardwareAccelerationSetting(it) }
-                        )
-                    }
-                }
-            }
-
-            // 5. Octagon Audio & Arena Experience
-            item {
-                SettingsSectionContainer(
-                    title = "OCTAGON AUDIO & ARENA HAPTICS",
-                    subtitle = "Corner audio routing, referee mics & tactile strike feedback",
-                    icon = Icons.Default.Headphones,
-                    iconTint = EtfcBlueCorner
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = "Default Octagon Audio Track",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EtfcTextPrimary
-                        )
-
-                        val audioFeeds = listOf(
-                            "Main Broadcast Commentary",
-                            "Red Corner Microphone",
-                            "Blue Corner Microphone",
-                            "Cage Atmosphere Only"
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            audioFeeds.take(2).forEach { feed ->
-                                val isSelected = uiState.preferredAudioFeed == feed
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.setPreferredAudioFeedSetting(feed) },
-                                    label = { Text(feed, fontSize = 10.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = EtfcBlueCorner,
-                                        selectedLabelColor = Color.White,
-                                        containerColor = EtfcCardInner,
-                                        labelColor = EtfcTextSecondary
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = isSelected,
-                                        borderColor = EtfcBorder,
-                                        selectedBorderColor = EtfcBlueCorner
-                                    )
-                                )
-                            }
-                        }
-
-                        SettingsSwitchRow(
-                            title = "Heavy Strike Haptic Feedback",
-                            subtitle = "Vibrates device on massive hooks, head kicks & knockdowns",
-                            icon = Icons.Default.Vibration,
-                            checked = uiState.isHapticFeedbackEnabled,
-                            onCheckedChange = { viewModel.toggleHapticFeedbackSetting(it) }
-                        )
-
-                        SettingsSwitchRow(
-                            title = "Live Chat Profanity Filter",
-                            subtitle = "Shields harassment and toxic messages in live arena fan chat",
-                            icon = Icons.Default.Security,
-                            checked = uiState.chatProfanityFilterEnabled,
-                            onCheckedChange = { viewModel.toggleChatProfanityFilter(it) }
-                        )
-                    }
-                }
-            }
-
-            // 6. Payment, Mobile Wallet & PPV Purchases
-            item {
-                SettingsSectionContainer(
-                    title = "PAYMENT WALLETS & PPV PASSES",
-                    subtitle = "1-Tap checkout preferences with Telebirr, M-Pesa & CBE Birr",
-                    icon = Icons.Default.Payments,
-                    iconTint = EtfcGold
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = "Preferred Mobile Checkout Wallet",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EtfcTextPrimary
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            PaymentProvider.entries.forEach { provider ->
-                                val isSelected = uiState.preferredMobileWallet == provider
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.setPreferredMobileWalletSetting(provider) },
-                                    label = {
-                                        Text(
-                                            text = provider.displayName,
-                                            fontSize = 10.sp,
-                                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium
-                                        )
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = EtfcGold,
-                                        selectedLabelColor = Color.Black,
-                                        containerColor = EtfcCardInner,
-                                        labelColor = EtfcTextSecondary
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = isSelected,
-                                        borderColor = EtfcBorder,
-                                        selectedBorderColor = EtfcGold
-                                    ),
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-
-                        // Active Pass Status
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = EtfcCardInner),
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, EtfcBorderSubtle)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text("ACTIVE PPV PASS", color = EtfcGold, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                                    Text(
-                                        text = activePass?.title ?: "No Active Pass (Free Prelims)",
-                                        color = EtfcTextPrimary,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = if (activePass != null) "Unlocked 4K Stream + Replays" else "Tap below to unlock main card & title fights",
-                                        color = EtfcTextMuted,
-                                        fontSize = 10.sp
-                                    )
-                                }
-
-                                Button(
-                                    onClick = { viewModel.selectTab(AppTab.PPV_PASSES) },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = EtfcGold,
-                                        contentColor = Color.Black
-                                    ),
-                                    shape = RoundedCornerShape(6.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Icon(imageVector = Icons.Default.ConfirmationNumber, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("EXPLORE PPV", fontSize = 10.sp, fontWeight = FontWeight.Black)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 7. Push Notifications & Event Alerts
-            item {
-                SettingsSectionContainer(
-                    title = "EVENT ALERTS & NOTIFICATIONS",
-                    subtitle = "Get notified before walkouts, title fight starts and instant KO finishes",
-                    icon = Icons.Default.NotificationsActive,
-                    iconTint = EtfcGold
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        SettingsSwitchRow(
-                            title = "Event Broadcast Reminders",
-                            subtitle = "Alert 30 min and 10 min before main broadcast goes live",
-                            icon = Icons.Default.Notifications,
-                            checked = uiState.isLiveStartAlertEnabled,
-                            onCheckedChange = { viewModel.toggleLiveStartAlertSetting(it) }
-                        )
-
-                        SettingsSwitchRow(
-                            title = "Fight Walkout & Bout Start Alerts",
-                            subtitle = "Instant alert when main card fighters make cage entrance",
-                            icon = Icons.Default.SportsMma,
-                            checked = uiState.isBoutStartAlertEnabled,
-                            onCheckedChange = { viewModel.toggleBoutStartAlertSetting(it) }
-                        )
-
-                        SettingsSwitchRow(
-                            title = "Instant Knockout & Decision Results",
-                            subtitle = "High-priority push alert whenever a fight terminates with a KO/TKO",
-                            icon = Icons.Default.Speed,
-                            checked = uiState.isKnockoutAlertEnabled,
-                            onCheckedChange = { viewModel.toggleKnockoutAlertSetting(it) }
-                        )
-
-                        OutlinedButton(
-                            onClick = {
-                                viewModel.triggerKoAlertNotification(
-                                    winner = "SEDO",
-                                    loser = "JHONNY",
-                                    method = "KO (Adwa Hammer Cross)",
-                                    round = 3,
-                                    time = "2:48"
-                                )
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, EtfcBorderGold),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcGold),
-                            modifier = Modifier.fillMaxWidth().height(36.dp).testTag("test_notification_btn")
-                        ) {
-                            Text("🔔 Test Local Fight Alert Notification", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
-            // 8. Language, Currency & Regional Settings
-            item {
-                SettingsSectionContainer(
-                    title = "LANGUAGE & CURRENCY",
-                    subtitle = "Localized Ethiopian & East African regional formats",
-                    icon = Icons.Default.Language,
-                    iconTint = EtfcGold
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = "App Interface Language",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EtfcTextPrimary
-                        )
-
-                        val languages = listOf("English", "አማርኛ (Amharic)", "ኦሮምኛ (Afaan)", "ትግርኛ (Tigrinya)")
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            languages.forEach { lang ->
-                                val isSelected = uiState.selectedLanguage == lang
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.updateLanguage(lang) },
-                                    label = { Text(lang, fontSize = 10.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = EtfcGold,
-                                        selectedLabelColor = Color.Black,
-                                        containerColor = EtfcCardInner,
-                                        labelColor = EtfcTextSecondary
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = isSelected,
-                                        borderColor = EtfcBorder,
-                                        selectedBorderColor = EtfcGold
-                                    )
-                                )
-                            }
-                        }
-
-                        HorizontalDivider(color = EtfcBorderSubtle)
-
-                        Text(
-                            text = "Billing Currency",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EtfcTextPrimary
-                        )
-
-                        val currencies = listOf("ETB (Ethiopian Birr - Br)", "KES (Kenyan Shilling - Ksh)", "USD ($)")
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            currencies.forEach { curr ->
-                                val isSelected = uiState.selectedCurrency == curr
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.updateCurrency(curr) },
-                                    label = { Text(curr, fontSize = 10.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = EtfcGold,
-                                        selectedLabelColor = Color.Black,
-                                        containerColor = EtfcCardInner,
-                                        labelColor = EtfcTextSecondary
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = isSelected,
-                                        borderColor = EtfcBorder,
-                                        selectedBorderColor = EtfcGold
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 9. Security, DRM Shield & Storage Cache
-            item {
-                SettingsSectionContainer(
-                    title = "SECURITY, DRM & STORAGE",
-                    subtitle = "Biometric purchases, anti-piracy shield & stream buffer cleanup",
-                    icon = Icons.Default.Security,
-                    iconTint = EtfcGold
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        SettingsSwitchRow(
-                            title = "Biometric / PIN Gate on Checkout",
-                            subtitle = "Require fingerprint/PIN before processing mobile wallet charges",
-                            icon = Icons.Default.Fingerprint,
-                            checked = uiState.isBiometricAuthEnabled,
-                            onCheckedChange = { viewModel.toggleBiometricAuthSetting(it) }
-                        )
-
-                        SettingsSwitchRow(
-                            title = "Anti-Piracy DRM Screen Shield",
-                            subtitle = "Blocks unauthorized screen capture/recording during live PPV bouts",
-                            icon = Icons.Default.Lock,
-                            checked = uiState.isDrmScreenShieldEnabled,
-                            onCheckedChange = { viewModel.toggleDrmScreenShieldSetting(it) }
-                        )
-
+                        // Role & Account Action Row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Temporary Stream Buffer Cache",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = EtfcTextPrimary
-                                )
-                                Text(
-                                    text = "Cleans up temporary video chunks and cached player thumbnails",
-                                    fontSize = 11.sp,
-                                    color = EtfcTextMuted
-                                )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSuperAdmin) EtfcGold.copy(alpha = 0.2f) else EtfcSurfaceVariant,
+                                border = BorderStroke(1.dp, if (isSuperAdmin) EtfcGold else EtfcBorder)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.VerifiedUser,
+                                        contentDescription = null,
+                                        tint = if (isSuperAdmin) EtfcGold else EtfcTextSecondary,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text(
+                                        text = if (isSuperAdmin) "SUPERADMIN" else userRole.badgeTitle.uppercase(),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (isSuperAdmin) EtfcGold else EtfcTextSecondary
+                                    )
+                                }
                             }
 
-                            Button(
-                                onClick = { viewModel.clearAppCache() },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = EtfcSurfaceVariant,
-                                    contentColor = EtfcGold
-                                ),
-                                border = BorderStroke(1.dp, EtfcBorderGold),
-                                modifier = Modifier.testTag("clear_cache_btn")
-                            ) {
-                                Icon(imageVector = Icons.Default.CleaningServices, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("CLEAR CACHE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = { viewModel.openAuthDialog() },
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, EtfcBorder),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcTextSecondary),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(32.dp).testTag("switch_account_btn")
+                                ) {
+                                    Icon(Icons.Default.SwitchAccount, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Switch", fontSize = 11.sp)
+                                }
+
+                                Button(
+                                    onClick = { viewModel.logout() },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = EtfcSurfaceVariant, contentColor = Color(0xFFFF6B6B)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(32.dp).testTag("logout_btn")
+                                ) {
+                                    Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Sign Out", fontSize = 11.sp)
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // 10. Support, Community & About ETFC
+            // =========================================================================
+            // 2. SUBSCRIPTION & LIVE PPV PASS STATUS (600 ETB Single Tier)
+            // =========================================================================
             item {
-                SettingsSectionContainer(
-                    title = "ABOUT ETFC & HELPLINE",
-                    subtitle = "Customer support, official community channels & broadcast licensing",
-                    icon = Icons.Default.HelpOutline,
-                    iconTint = EtfcGold
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = EtfcCard),
+                    border = BorderStroke(1.dp, EtfcBorderGold),
+                    modifier = Modifier.fillMaxWidth().testTag("subscription_card")
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SettingsNavRow(
-                            title = "Telegram Official Support Bot",
-                            subtitle = "@etfc_support_bot • Instant 24/7 assistance",
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/etfc_official"))
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ConfirmationNumber,
+                                    contentDescription = null,
+                                    tint = EtfcGold,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "ETFC 003 LIVE ACCESS PASS",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = EtfcGold,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (activePass != null || userRole.canAccessTier(com.example.data.models.ContentTier.STANDARD_PPV_MAIN_CARD)) EtfcSuccess.copy(alpha = 0.2f) else EtfcLiveRed.copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, if (activePass != null || userRole.canAccessTier(com.example.data.models.ContentTier.STANDARD_PPV_MAIN_CARD)) EtfcSuccess else EtfcLiveRed)
+                            ) {
+                                Text(
+                                    text = if (activePass != null || userRole.canAccessTier(com.example.data.models.ContentTier.STANDARD_PPV_MAIN_CARD)) "ACTIVE" else "LOCKED",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (activePass != null || userRole.canAccessTier(com.example.data.models.ContentTier.STANDARD_PPV_MAIN_CARD)) EtfcSuccess else EtfcLiveRed,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        if (activePass != null || userRole.canAccessTier(com.example.data.models.ContentTier.STANDARD_PPV_MAIN_CARD)) {
+                            Text(
+                                text = "All-access live broadcast pass unlocked. Full 1080p single HLS feed active.",
+                                fontSize = 11.sp,
+                                color = EtfcTextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = EtfcCardInner,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text(
+                                        text = "PASS: ${activePass?.title ?: "ETFC 003 All-Access Pass (600 ETB)"}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = EtfcGold
+                                    )
+                                    Text(
+                                        text = "Signature: ${activePass?.signatureToken ?: "SECURE-AUTH-ACTIVE"}",
+                                        fontSize = 9.sp,
+                                        color = EtfcTextMuted
+                                    )
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = "Get complete live access to all ETFC 003 championship and prelim bouts for a single flat price.",
+                                fontSize = 11.sp,
+                                color = EtfcTextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(text = "Single Event Price", fontSize = 10.sp, color = EtfcTextMuted)
+                                    Text(text = "600 ETB", fontSize = 18.sp, fontWeight = FontWeight.Black, color = EtfcGold)
+                                }
+                                Button(
+                                    onClick = {
+                                        val tier = viewModel.ppvTiers.firstOrNull()
+                                        viewModel.openCheckoutDialog(tier)
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black),
+                                    modifier = Modifier.testTag("buy_pass_settings_btn")
+                                ) {
+                                    Text("BUY PASS (600 ETB)", fontWeight = FontWeight.Black, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // =========================================================================
+            // 3. ADMIN CRM PORTAL (AdminGuard: only for dannynewg@gmail.com or ADMIN role)
+            // =========================================================================
+            if (userRole == UserRole.ADMIN || uiState.currentUser?.email.equals("dannynewg@gmail.com", ignoreCase = true) || uiState.currentUser?.isAdmin == true) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = EtfcCard),
+                        border = BorderStroke(1.dp, EtfcBorderGold),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.openAdminPortal() }
+                            .testTag("admin_crm_portal_btn")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = EtfcGold.copy(alpha = 0.2f),
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.AdminPanelSettings,
+                                            contentDescription = "Admin Portal",
+                                            tint = EtfcGold,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                                Column {
+                                    Text(
+                                        text = "ETFC ADMIN CRM & FIGHT CRM",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = EtfcGold
+                                    )
+                                    Text(
+                                        text = "Manage fighters, matches, cloud sync & invite admins",
+                                        fontSize = 10.sp,
+                                        color = EtfcTextSecondary
+                                    )
+                                }
+                            }
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = EtfcGold)
+                        }
+                    }
+                }
+            }
+
+            // =========================================================================
+            // 4. PLAYBACK & NETWORK PREFERENCES
+            // =========================================================================
+            item {
+                SettingsSectionContainer(title = "PLAYBACK & STREAMING OPTIONS", icon = Icons.Default.Tune) {
+                    // Stream Resolution Preference
+                    Text(
+                        text = "Preferred Streaming Quality (Single HLS Ladder)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = EtfcTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(StreamQuality.AUTO_ABR, StreamQuality.HD_1080P, StreamQuality.HD_720P, StreamQuality.SAVER_240P).forEach { quality ->
+                            val isSelected = uiState.streamQuality == quality
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { viewModel.setStreamQuality(quality) },
+                                label = {
+                                    Text(
+                                        quality.resolutionLabel,
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = EtfcGold,
+                                    selectedLabelColor = Color.Black,
+                                    containerColor = EtfcCardInner,
+                                    labelColor = EtfcTextSecondary
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = EtfcBorderSubtle)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Low Latency Edge Mode
+                    SettingsToggleRow(
+                        title = "Ultra-Low Latency Mode (<25ms)",
+                        subtitle = "Direct AWS elemental synchronization for live punch tracking",
+                        isChecked = uiState.isLowLatencyMode,
+                        onCheckedChange = { viewModel.toggleLowLatencyMode(it) }
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Hardware Acceleration
+                    SettingsToggleRow(
+                        title = "Hardware Video Acceleration",
+                        subtitle = "Utilize device GPU for 60fps frame rendering and reduced battery usage",
+                        isChecked = uiState.isHardwareAccelerationEnabled,
+                        onCheckedChange = { viewModel.toggleHardwareAcceleration(it) }
+                    )
+                }
+            }
+
+            // =========================================================================
+            // 5. NOTIFICATION ALERTS
+            // =========================================================================
+            item {
+                SettingsSectionContainer(title = "MATCH NOTIFICATIONS & ALERTS", icon = Icons.Default.NotificationsActive) {
+                    SettingsToggleRow(
+                        title = "Live Event Broadcast Alerts",
+                        subtitle = "Receive notifications when ETFC 003 arena doors open",
+                        isChecked = uiState.isLiveStartAlertEnabled,
+                        onCheckedChange = { viewModel.toggleLiveStartAlert(it) }
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    SettingsToggleRow(
+                        title = "Bout Walkout Notifications",
+                        subtitle = "Alert when main card fighters start cage entrance",
+                        isChecked = uiState.isBoutStartAlertEnabled,
+                        onCheckedChange = { viewModel.toggleBoutStartAlert(it) }
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    SettingsToggleRow(
+                        title = "Knockout & Finish Instant Replays",
+                        subtitle = "Immediate push notification upon KO/TKO or submission finish",
+                        isChecked = uiState.isKnockoutAlertEnabled,
+                        onCheckedChange = { viewModel.toggleKnockoutAlert(it) }
+                    )
+                }
+            }
+
+            // =========================================================================
+            // 6. SECURITY & DRM PROTECTION
+            // =========================================================================
+            item {
+                SettingsSectionContainer(title = "SECURITY & DRM SHIELD", icon = Icons.Default.Security) {
+                    SettingsToggleRow(
+                        title = "Anti-Piracy DRM Screen Shield",
+                        subtitle = "Blocks unauthorized background screen recorders & capture tools",
+                        isChecked = uiState.isDrmScreenShieldEnabled,
+                        onCheckedChange = { viewModel.toggleDrmScreenShield(it) }
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    SettingsToggleRow(
+                        title = "Biometric Arena Lock",
+                        subtitle = "Require fingerprint/face auth when entering PPV streams",
+                        isChecked = uiState.isBiometricAuthEnabled,
+                        onCheckedChange = { viewModel.toggleBiometricAuth(it) }
+                    )
+                }
+            }
+
+            // =========================================================================
+            // 7. ABOUT ETFC & OFFICIAL CONTACT INFO
+            // =========================================================================
+            item {
+                SettingsSectionContainer(title = "ABOUT ETFC & CONTACT SUPPORT", icon = Icons.Default.HelpOutline) {
+                    // cPanel Domain link
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(EtfcCardInner)
+                            .clickable {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://etfcstream.freedev.app"))
                                 context.startActivity(intent)
                             }
-                        )
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.Public, contentDescription = null, tint = EtfcGold, modifier = Modifier.size(18.dp))
+                            Column {
+                                Text("Official Web Portal", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = EtfcTextPrimary)
+                                Text("etfcstream.freedev.app", fontSize = 10.sp, color = EtfcGold)
+                            }
+                        }
+                        Icon(Icons.Default.OpenInNew, contentDescription = null, tint = EtfcGold, modifier = Modifier.size(16.dp))
+                    }
 
-                        SettingsNavRow(
-                            title = "WhatsApp Customer Helpline",
-                            subtitle = "+251 911 000 000 • Addis Ababa Support Desk",
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/251911000000"))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Contact Phone
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(EtfcCardInner)
+                            .clickable {
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+251911234567"))
                                 context.startActivity(intent)
                             }
-                        )
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.Call, contentDescription = null, tint = EtfcSuccess, modifier = Modifier.size(18.dp))
+                            Column {
+                                Text("Customer Support Helpline", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = EtfcTextPrimary)
+                                Text("+251 911 234 567 (Addis Ababa)", fontSize = 10.sp, color = EtfcTextSecondary)
+                            }
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = EtfcTextMuted, modifier = Modifier.size(16.dp))
+                    }
 
-                        SettingsNavRow(
-                            title = "Broadcast License & Terms of Service",
-                            subtitle = "ETFC Combat Sports Entertainment Group 2026",
-                            onClick = { isAboutDialogOpen = true }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Contact Email
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(EtfcCardInner)
+                            .clickable {
+                                val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:support@etfc.stream"))
+                                context.startActivity(intent)
+                            }
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.Email, contentDescription = null, tint = EtfcBlueCorner, modifier = Modifier.size(18.dp))
+                            Column {
+                                Text("Email Support & Media Press", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = EtfcTextPrimary)
+                                Text("support@etfc.stream", fontSize = 10.sp, color = EtfcTextSecondary)
+                            }
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = EtfcTextMuted, modifier = Modifier.size(16.dp))
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // App Info & Headquarters
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "ETFC STREAM v3.4.0 (Build 304)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = EtfcGold
+                        )
+                        Text(
+                            text = "Ethiopian Fight Championship • Adwa 00 Museum, Addis Ababa",
+                            fontSize = 9.sp,
+                            color = EtfcTextMuted
                         )
                     }
                 }
             }
+
+            item {
+                Spacer(modifier = Modifier.height(30.dp))
+            }
         }
 
-        // Snackbar Host for feedback
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp)
+                .padding(bottom = 16.dp)
         )
     }
 
-    // About Dialog
-    if (isAboutDialogOpen) {
+    // =========================================================================
+    // EDIT PROFILE DIALOG
+    // =========================================================================
+    if (isEditProfileDialogOpen) {
         AlertDialog(
-            onDismissRequest = { isAboutDialogOpen = false },
+            onDismissRequest = { isEditProfileDialogOpen = false },
+            containerColor = EtfcCard,
             title = {
                 Text(
-                    text = "ETFC Streaming Platform",
+                    text = "Edit Fighter Profile",
                     color = EtfcGold,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Black
                 )
             },
             text = {
-                Text(
-                    text = "Ethiopian Top Fighting Championship (ETFC) v2.4.0\n\n" +
-                            "Official combat sports broadcast network of Ethiopia and East Africa. " +
-                            "Featuring live PPV broadcasts, real-time corner audio switching, Telebirr & M-Pesa 1-tap checkout, " +
-                            "interactive fighter chat and full YouTube match archives.\n\n" +
-                            "© 2026 ETFC Entertainment. All rights reserved.",
-                    color = EtfcTextSecondary,
-                    fontSize = 12.sp,
-                    lineHeight = 18.sp
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = editNameInput,
+                        onValueChange = { editNameInput = it },
+                        label = { Text("Display Name") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            unfocusedBorderColor = EtfcBorder,
+                            focusedTextColor = EtfcTextPrimary,
+                            unfocusedTextColor = EtfcTextPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = editHandleInput,
+                        onValueChange = { editHandleInput = it },
+                        label = { Text("Arena Handle (@username)") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            unfocusedBorderColor = EtfcBorder,
+                            focusedTextColor = EtfcTextPrimary,
+                            unfocusedTextColor = EtfcTextPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = editPhoneInput,
+                        onValueChange = { editPhoneInput = it },
+                        label = { Text("Phone Number (+251)") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            unfocusedBorderColor = EtfcBorder,
+                            focusedTextColor = EtfcTextPrimary,
+                            unfocusedTextColor = EtfcTextPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 Button(
-                    onClick = { isAboutDialogOpen = false },
+                    onClick = {
+                        viewModel.updateProfile(editNameInput, editHandleInput, editPhoneInput)
+                        isEditProfileDialogOpen = false
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = EtfcGold, contentColor = Color.Black)
                 ) {
-                    Text("OK", fontWeight = FontWeight.Bold)
+                    Text("SAVE CHANGES", fontWeight = FontWeight.Bold)
                 }
             },
-            containerColor = EtfcCard,
-            shape = RoundedCornerShape(12.dp)
+            dismissButton = {
+                TextButton(onClick = { isEditProfileDialogOpen = false }) {
+                    Text("Cancel", color = EtfcTextMuted)
+                }
+            }
         )
     }
 }
@@ -1027,146 +778,71 @@ fun SettingsScreen(
 @Composable
 fun SettingsSectionContainer(
     title: String,
-    subtitle: String,
     icon: ImageVector,
-    iconTint: Color = EtfcGold,
     content: @Composable () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = EtfcCard),
         border = BorderStroke(1.dp, EtfcBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp)
+                Icon(imageVector = icon, contentDescription = null, tint = EtfcGold, modifier = Modifier.size(18.dp))
+                Text(
+                    text = title,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    color = EtfcGold,
+                    letterSpacing = 0.5.sp
                 )
-                Column {
-                    Text(
-                        text = title,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Black,
-                        color = EtfcTextPrimary,
-                        letterSpacing = 0.5.sp
-                    )
-                    Text(
-                        text = subtitle,
-                        fontSize = 10.sp,
-                        color = EtfcTextMuted
-                    )
-                }
             }
-
-            HorizontalDivider(color = EtfcBorderSubtle)
-
+            Spacer(modifier = Modifier.height(12.dp))
             content()
         }
     }
 }
 
 @Composable
-fun SettingsSwitchRow(
+fun SettingsToggleRow(
     title: String,
     subtitle: String,
-    icon: ImageVector,
-    checked: Boolean,
+    isChecked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .clickable { onCheckedChange(!isChecked) },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (checked) EtfcGold else EtfcTextMuted,
-                modifier = Modifier.size(18.dp)
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = EtfcTextPrimary
             )
-            Column {
-                Text(
-                    text = title,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = EtfcTextPrimary
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 10.5.sp,
-                    color = EtfcTextMuted,
-                    lineHeight = 14.sp
-                )
-            }
+            Text(
+                text = subtitle,
+                fontSize = 10.sp,
+                color = EtfcTextSecondary
+            )
         }
-
         Switch(
-            checked = checked,
+            checked = isChecked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.Black,
                 checkedTrackColor = EtfcGold,
                 uncheckedThumbColor = EtfcTextMuted,
                 uncheckedTrackColor = EtfcCardInner
-            ),
-            modifier = Modifier.testTag("switch_${title.lowercase().replace(" ", "_")}")
-        )
-    }
-}
-
-@Composable
-fun SettingsNavRow(
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = EtfcTextPrimary
             )
-            Text(
-                text = subtitle,
-                fontSize = 10.5.sp,
-                color = EtfcTextMuted
-            )
-        }
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = EtfcTextMuted,
-            modifier = Modifier.size(18.dp)
         )
     }
 }

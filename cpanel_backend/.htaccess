@@ -1,0 +1,25 @@
+# =============================================================================
+# ETFC STREAMING PLATFORM - CPANEL APACHE HTACCESS
+# =============================================================================
+
+RewriteEngine On
+
+# Allow CORS for Android App & Web Clients
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-ETFC-Api-Key"
+</IfModule>
+
+# Handle Options preflight requests
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# Prevent directory browsing
+Options -Indexes
+
+# Protect sensitive files and folders
+<FilesMatch "(^\.env|\.sql|\.json|\.log|config\.php)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

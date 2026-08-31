@@ -101,6 +101,7 @@ import com.example.data.models.PreviousFightVideo
 import com.example.data.models.UserRole
 import com.example.data.models.VideoCategory
 import com.example.ui.components.DominantLiveEventTopSection
+import com.example.ui.components.Etfc003LiveCountdownStripBanner
 import com.example.ui.components.HeroSection
 import com.example.ui.components.YouTubeInAppPlayerDialog
 import com.example.ui.theme.EtfcBlueCorner
@@ -156,27 +157,20 @@ fun HomeScreen(
         contentPadding = PaddingValues(bottom = 96.dp)
     ) {
         // =========================================================================
-        // 1. DOMINANT TOP LIVE EVENT SECTION (Appears on top of all sections when live)
+        // 1. ETFC 003 LIVE COUNTDOWN & 600 ETB PPV ACCESS STRIP BANNER
         // =========================================================================
-        if (uiState.isLiveEventOngoing && activeBout != null) {
-            item(key = "dominant_live_event_section") {
-                DominantLiveEventTopSection(
-                    bout = activeBout,
-                    isExpanded = uiState.isLivePreviewExpanded,
-                    onToggleExpand = { viewModel.toggleLivePreviewExpanded() },
-                    onNavigateToLiveArena = { viewModel.selectTab(AppTab.LIVE_ARENA) },
-                    onOpenPpvCheckout = {
-                        val popularTier = viewModel.ppvTiers.find { it.isPopular } ?: viewModel.ppvTiers.firstOrNull()
-                        viewModel.openCheckoutDialog(popularTier)
-                    },
-                    isPassUnlocked = userRole.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD),
-                    liveRound = uiState.liveRound,
-                    liveClockSec = uiState.liveSecondsRemaining,
-                    bitrateKbps = uiState.currentBitrateKbps,
-                    crowdCheerCount = uiState.liveCrowdCheerCount,
-                    onCheer = { viewModel.sendCheerReaction("🔥") }
-                )
-            }
+        item(key = "etfc003_strip_banner") {
+            Etfc003LiveCountdownStripBanner(
+                isPassUnlocked = userRole.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD),
+                onClick = {
+                    if (userRole.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD)) {
+                        viewModel.selectTab(AppTab.LIVE_ARENA)
+                    } else {
+                        val singleTier = viewModel.ppvTiers.firstOrNull()
+                        viewModel.openCheckoutDialog(singleTier)
+                    }
+                }
+            )
         }
 
         // =========================================================================
@@ -190,7 +184,8 @@ fun HomeScreen(
                     if (slide.type == HeroSlideType.UPCOMING_MATCH) {
                         viewModel.selectTab(AppTab.FIGHT_CARD)
                     } else if (slide.type == HeroSlideType.EARLY_BIRD_PPV) {
-                        viewModel.selectTab(AppTab.PPV_PASSES)
+                        val singleTier = viewModel.ppvTiers.firstOrNull()
+                        viewModel.openCheckoutDialog(singleTier)
                     } else {
                         viewModel.navigateToHeroSlideAction(slide)
                     }
@@ -203,12 +198,22 @@ fun HomeScreen(
         // =========================================================================
         item(key = "quick_action_hub") {
             HomeQuickActionHub(
-                onLiveClick = { viewModel.selectTab(AppTab.LIVE_ARENA) },
-                onPpvClick = { viewModel.selectTab(AppTab.PPV_PASSES) },
+                onLiveClick = {
+                    if (userRole.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD)) {
+                        viewModel.selectTab(AppTab.LIVE_ARENA)
+                    } else {
+                        val singleTier = viewModel.ppvTiers.firstOrNull()
+                        viewModel.openCheckoutDialog(singleTier)
+                    }
+                },
+                onPpvClick = {
+                    val singleTier = viewModel.ppvTiers.firstOrNull()
+                    viewModel.openCheckoutDialog(singleTier)
+                },
                 onFightCardClick = { viewModel.selectTab(AppTab.FIGHT_CARD) },
                 onVipClick = {
-                    val vipTier = viewModel.ppvTiers.find { it.id == "tier_vip_ringside" }
-                    viewModel.openCheckoutDialog(vipTier)
+                    val singleTier = viewModel.ppvTiers.firstOrNull()
+                    viewModel.openCheckoutDialog(singleTier)
                 },
                 onSettingsClick = { viewModel.selectTab(AppTab.SETTINGS) },
                 onFightersClick = { viewModel.selectTab(AppTab.FIGHTERS) }
@@ -225,98 +230,6 @@ fun HomeScreen(
                 badge = "${previousVideos.size} Videos",
                 badgeColor = EtfcGold
             )
-        }
-
-        // Official YouTube Playlist Banner Card
-        item(key = "youtube_playlist_hero_banner") {
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = EtfcCard),
-                border = BorderStroke(1.dp, EtfcBorderGold),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .clickable { viewModel.openYouTubePlayer(null) }
-                    .testTag("youtube_playlist_banner")
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(EtfcRedPrimary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SmartDisplay,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = "OFFICIAL YOUTUBE PLAYLIST",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black,
-                                color = EtfcGold
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = EtfcRedPrimary.copy(alpha = 0.2f)
-                            ) {
-                                Text(
-                                    text = "IN-APP PLAYER",
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = EtfcRedPrimary,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                )
-                            }
-                        }
-                        Text(
-                            text = "ETFC Fight Archive: Adwa Fight Night 002",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EtfcTextPrimary
-                        )
-                        Text(
-                            text = "Watch all bouts & finishes with in-app embedded player",
-                            fontSize = 10.sp,
-                            color = EtfcTextMuted
-                        )
-                    }
-
-                    Button(
-                        onClick = { viewModel.openYouTubePlayer(null) },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = EtfcRedPrimary,
-                            contentColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayCircleFilled,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("PLAY", fontSize = 11.sp, fontWeight = FontWeight.Black)
-                    }
-                }
-            }
         }
 
         item(key = "video_category_filter_chips") {
@@ -383,7 +296,10 @@ fun HomeScreen(
         item(key = "mobile_money_trust_banner") {
             Spacer(modifier = Modifier.height(12.dp))
             MobileMoneyPartnershipBanner(
-                onPpvExplore = { viewModel.selectTab(AppTab.PPV_PASSES) },
+                onPpvExplore = {
+                    val singleTier = viewModel.ppvTiers.firstOrNull()
+                    viewModel.openCheckoutDialog(singleTier)
+                },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
@@ -439,20 +355,10 @@ fun HomeQuickActionHub(
         ) {
             item {
                 QuickActionPill(
-                    icon = Icons.Default.Tv,
-                    label = "Live Arena",
-                    badge = "LIVE",
-                    badgeColor = EtfcLiveRed,
-                    onClick = onLiveClick,
-                    accentColor = EtfcLiveRed
-                )
-            }
-            item {
-                QuickActionPill(
                     icon = Icons.Default.LocalActivity,
-                    label = "Buy PPV Pass",
-                    badge = "35% OFF",
-                    badgeColor = EtfcSuccess,
+                    label = "ETFC 003 Pass",
+                    badge = "600 ETB",
+                    badgeColor = EtfcGold,
                     onClick = onPpvClick,
                     accentColor = EtfcGold
                 )
@@ -461,39 +367,29 @@ fun HomeQuickActionHub(
                 QuickActionPill(
                     icon = Icons.Default.SportsMma,
                     label = "Fight Card",
-                    badge = null,
-                    badgeColor = null,
+                    badge = "OCTAGON",
+                    badgeColor = EtfcRedPrimary,
                     onClick = onFightCardClick,
                     accentColor = EtfcTextPrimary
                 )
             }
             item {
                 QuickActionPill(
-                    icon = Icons.Default.WorkspacePremium,
-                    label = "VIP Ringside",
-                    badge = "VIP",
-                    badgeColor = EtfcGold,
-                    onClick = onVipClick,
+                    icon = Icons.Default.TrendingUp,
+                    label = "Fighters Roster",
+                    badge = "TOP 10",
+                    badgeColor = EtfcSuccess,
+                    onClick = onFightersClick,
                     accentColor = EtfcGold
                 )
             }
             item {
                 QuickActionPill(
                     icon = Icons.Default.Settings,
-                    label = "Settings",
+                    label = "Settings & Profile",
                     badge = null,
                     badgeColor = null,
                     onClick = onSettingsClick,
-                    accentColor = EtfcGold
-                )
-            }
-            item {
-                QuickActionPill(
-                    icon = Icons.Default.TrendingUp,
-                    label = "Fighter Roster",
-                    badge = null,
-                    badgeColor = null,
-                    onClick = onFightersClick,
                     accentColor = EtfcTextSecondary
                 )
             }

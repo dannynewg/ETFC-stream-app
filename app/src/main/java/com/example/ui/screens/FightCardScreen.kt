@@ -21,13 +21,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.SportsMma
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -38,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,25 +69,43 @@ import com.example.ui.theme.EtfcCardInner
 import com.example.ui.theme.EtfcGold
 import com.example.ui.theme.EtfcLiveRed
 import com.example.ui.theme.EtfcRedPrimary
+import com.example.ui.theme.EtfcSuccess
 import com.example.ui.theme.EtfcTextMuted
 import com.example.ui.theme.EtfcTextPrimary
 import com.example.ui.theme.EtfcTextSecondary
 
+enum class FixtureViewMode {
+    ETFC_003_FIXTURES, // Upcoming in 3 Months
+    ETFC_002_RESULTS   // Completed Last Week
+}
+
 @Composable
 fun FightCardScreen(
     bouts: List<Bout>,
-    onSelectBoutForStream: (Bout) -> Unit,
+    etfc003Bouts: List<Bout> = bouts,
+    etfc002PastBouts: List<Bout> = emptyList(),
+    onSelectBoutForStream: (Bout) -> Unit = {},
     onOpenTaleOfTheTape: (Fighter, Fighter) -> Unit,
     onDownloadBout: (Bout, StreamQuality) -> Unit,
+    onWatchReplay: ((Bout) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    var activeViewMode by remember { mutableStateOf(FixtureViewMode.ETFC_003_FIXTURES) }
     var selectedCategoryFilter by remember { mutableStateOf<MatchCategory?>(null) }
 
-    val filteredBouts = remember(selectedCategoryFilter, bouts) {
-        if (selectedCategoryFilter == null) {
-            bouts
+    val activeBoutList = remember(activeViewMode, etfc003Bouts, etfc002PastBouts) {
+        if (activeViewMode == FixtureViewMode.ETFC_003_FIXTURES) {
+            if (etfc003Bouts.isNotEmpty()) etfc003Bouts else bouts
         } else {
-            bouts.filter { it.matchCategory == selectedCategoryFilter }
+            if (etfc002PastBouts.isNotEmpty()) etfc002PastBouts else bouts.filter { it.status == BoutStatus.COMPLETED }
+        }
+    }
+
+    val filteredBouts = remember(selectedCategoryFilter, activeBoutList) {
+        if (selectedCategoryFilter == null) {
+            activeBoutList
+        } else {
+            activeBoutList.filter { it.matchCategory == selectedCategoryFilter }
         }
     }
 
@@ -94,122 +116,279 @@ fun FightCardScreen(
         contentPadding = PaddingValues(top = 14.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Official Event Banner: ETFC 002 Adwa Fight Night
-        item {
-            Card(
+        // Mode Selector Tabs: [ETFC 003 Fixtures] vs [ETFC 002 Past Results]
+        item(key = "fixture_event_mode_tabs") {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, EtfcGold.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                colors = CardDefaults.cardColors(containerColor = EtfcCard)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(EtfcCardInner)
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Box(
+                // Tab 1: ETFC 003 Fixtures
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            activeViewMode = FixtureViewMode.ETFC_003_FIXTURES
+                            selectedCategoryFilter = null
+                        }
+                        .testTag("tab_etfc003_fixtures"),
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (activeViewMode == FixtureViewMode.ETFC_003_FIXTURES) EtfcGold else Color.Transparent
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = if (activeViewMode == FixtureViewMode.ETFC_003_FIXTURES) Color.Black else EtfcGold,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "ETFC 003 FIXTURES",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (activeViewMode == FixtureViewMode.ETFC_003_FIXTURES) Color.Black else EtfcTextPrimary
+                        )
+                    }
+                }
+
+                // Tab 2: ETFC 002 Past Results
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            activeViewMode = FixtureViewMode.ETFC_002_RESULTS
+                            selectedCategoryFilter = null
+                        }
+                        .testTag("tab_etfc002_results"),
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (activeViewMode == FixtureViewMode.ETFC_002_RESULTS) EtfcGold else Color.Transparent
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = null,
+                            tint = if (activeViewMode == FixtureViewMode.ETFC_002_RESULTS) Color.Black else EtfcTextMuted,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "ETFC 002 RESULTS",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (activeViewMode == FixtureViewMode.ETFC_002_RESULTS) Color.Black else EtfcTextSecondary
+                        )
+                    }
+                }
+            }
+        }
+
+        // Official Event Banner (Conditional on active mode)
+        item(key = "fixture_event_banner") {
+            if (activeViewMode == FixtureViewMode.ETFC_003_FIXTURES) {
+                // ETFC 003 Banner (Upcoming in 3 months)
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF241A04), EtfcCard)
-                            )
-                        )
-                        .padding(16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(1.dp, EtfcGold.copy(alpha = 0.6f), RoundedCornerShape(16.dp)),
+                    colors = CardDefaults.cardColors(containerColor = EtfcCard)
                 ) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                color = EtfcLiveRed,
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = "🔴 LIVE EVENT",
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 0.5.sp,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF2B1F05), EtfcCard)
                                 )
+                            )
+                            .padding(16.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    color = EtfcGold.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(4.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, EtfcGold)
+                                ) {
+                                    Text(
+                                        text = "⏳ IN 3 MONTHS",
+                                        color = EtfcGold,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 0.5.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+
+                                Surface(
+                                    color = EtfcCardInner,
+                                    shape = RoundedCornerShape(4.dp),
+                                    border = androidx.compose.foundation.BorderStroke(0.5.dp, EtfcBorderSubtle)
+                                ) {
+                                    Text(
+                                        text = "ETFC 003 OFFICIAL CARD",
+                                        color = EtfcTextPrimary,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.8.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
 
-                            Surface(
-                                color = EtfcGold.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(4.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, EtfcGold.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = "ETFC 003: CHAMPIONS COLLIDE",
+                                color = EtfcGold,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp
+                            )
+
+                            Text(
+                                text = "MAIN EVENT: SEDO vs JHONNY II • UNDISPUTED TITLE FIGHT",
+                                color = EtfcTextPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(
-                                    text = "ETFC 002 OFFICIAL CARD",
-                                    color = EtfcGold,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.8.sp,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = EtfcGold,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "ADWA 00 MUSEUM ARENA",
+                                        color = EtfcTextSecondary,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = null,
+                                        tint = EtfcGold,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "NOVEMBER 28, 2026 • 8:00 PM EAT",
+                                        color = EtfcTextSecondary,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Text(
-                            text = "ADWA FIGHT NIGHT",
-                            color = EtfcGold,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.2.sp
-                        )
-
-                        Text(
-                            text = "MAIN EVENT: SEDO vs JHONNY • MIDDLE WEIGHT TITLE",
-                            color = EtfcTextPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = EtfcGold,
-                                    modifier = Modifier.size(14.dp)
+                    }
+                }
+            } else {
+                // ETFC 002 Banner (Completed last week)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(1.dp, EtfcBorderSubtle, RoundedCornerShape(16.dp)),
+                    colors = CardDefaults.cardColors(containerColor = EtfcCard)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF1E2129), EtfcCard)
                                 )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "ADWA 00 MUSEUM",
-                                    color = EtfcTextSecondary,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            )
+                            .padding(16.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    color = EtfcSuccess.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(4.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, EtfcSuccess)
+                                ) {
+                                    Text(
+                                        text = "🏁 PAST EVENT (COMPLETED LAST WEEK)",
+                                        color = EtfcSuccess,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 0.5.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+
+                                Surface(
+                                    color = EtfcCardInner,
+                                    shape = RoundedCornerShape(4.dp),
+                                    border = androidx.compose.foundation.BorderStroke(0.5.dp, EtfcBorderSubtle)
+                                ) {
+                                    Text(
+                                        text = "ETFC 002 FIGHT ARCHIVE",
+                                        color = EtfcTextMuted,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.8.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = null,
-                                    tint = EtfcGold,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "AUGUST 27 • 8:00 PM EAT",
-                                    color = EtfcTextSecondary,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = "ETFC 002: ADWA FIGHT NIGHT",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp
+                            )
+
+                            Text(
+                                text = "OFFICIAL BOUT RESULTS • HELD AUGUST 27, 2026",
+                                color = EtfcTextSecondary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
             }
         }
 
-        // Discipline Filters: All (10), MMA (4), Boxing (3), Muay Thai (3)
-        item {
+        // Discipline Filters: All, MMA, Boxing, Muay Thai
+        item(key = "fixture_discipline_filters") {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -228,7 +407,7 @@ fun FightCardScreen(
                         )
                     ) {
                         Text(
-                            text = "All Bouts (${bouts.size})",
+                            text = "All Bouts (${activeBoutList.size})",
                             color = if (isSelected) Color.Black else EtfcTextSecondary,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -239,7 +418,7 @@ fun FightCardScreen(
 
                 items(MatchCategory.entries) { category ->
                     val isSelected = selectedCategoryFilter == category
-                    val count = bouts.count { it.matchCategory == category }
+                    val count = activeBoutList.count { it.matchCategory == category }
                     Surface(
                         modifier = Modifier
                             .clickable { selectedCategoryFilter = category }
@@ -263,13 +442,14 @@ fun FightCardScreen(
             }
         }
 
-        // Fight Cards List
-        items(filteredBouts) { bout ->
+        // Match Cards List
+        items(filteredBouts, key = { it.id }) { bout ->
             BoutCardItem(
                 bout = bout,
-                onWatchLive = { onSelectBoutForStream(bout) },
+                isPastEvent = activeViewMode == FixtureViewMode.ETFC_002_RESULTS,
                 onTaleOfTheTape = { onOpenTaleOfTheTape(bout.fighterRed, bout.fighterBlue) },
-                onDownload = { onDownloadBout(bout, StreamQuality.SAVER_240P) }
+                onDownload = { onDownloadBout(bout, StreamQuality.SAVER_240P) },
+                onWatchReplay = { onWatchReplay?.invoke(bout) }
             )
         }
 
@@ -282,9 +462,10 @@ fun FightCardScreen(
 @Composable
 private fun BoutCardItem(
     bout: Bout,
-    onWatchLive: () -> Unit,
+    isPastEvent: Boolean,
     onTaleOfTheTape: () -> Unit,
-    onDownload: () -> Unit
+    onDownload: () -> Unit,
+    onWatchReplay: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -369,12 +550,14 @@ private fun BoutCardItem(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Fighters Face-Off Row with High-Resolution Stylized Portraits
+            // Fighters Face-Off Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val isRedWinner = bout.winnerId == bout.fighterRed.id
+
                 // Red Corner Fighter (Avatar + Details)
                 Row(
                     modifier = Modifier.weight(1f),
@@ -387,12 +570,18 @@ private fun BoutCardItem(
                         corner = AvatarCorner.RED
                     )
                     Column {
-                        Text(
-                            text = bout.fighterRed.name.uppercase(),
-                            color = EtfcTextPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = bout.fighterRed.name.uppercase(),
+                                color = EtfcTextPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            if (isPastEvent && isRedWinner) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("👑", fontSize = 12.sp)
+                            }
+                        }
                         Text(
                             text = "\"${bout.fighterRed.nickname}\"",
                             color = EtfcRedPrimary,
@@ -423,6 +612,8 @@ private fun BoutCardItem(
                     )
                 }
 
+                val isBlueWinner = bout.winnerId == bout.fighterBlue.id
+
                 // Blue Corner Fighter (Details + Avatar)
                 Row(
                     modifier = Modifier.weight(1f),
@@ -430,13 +621,19 @@ private fun BoutCardItem(
                     horizontalArrangement = Arrangement.End
                 ) {
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = bout.fighterBlue.name.uppercase(),
-                            color = EtfcTextPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black,
-                            textAlign = TextAlign.End
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isPastEvent && isBlueWinner) {
+                                Text("👑", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            Text(
+                                text = bout.fighterBlue.name.uppercase(),
+                                color = EtfcTextPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                textAlign = TextAlign.End
+                            )
+                        }
                         Text(
                             text = "\"${bout.fighterBlue.nickname}\"",
                             color = EtfcBlueCorner,
@@ -460,49 +657,52 @@ private fun BoutCardItem(
                 }
             }
 
+            // If past event, show official result badge
+            if (isPastEvent && bout.resultMethod != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = EtfcCardInner,
+                    border = androidx.compose.foundation.BorderStroke(0.5.dp, EtfcSuccess.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = EtfcSuccess,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "OFFICIAL RESULT: ${bout.resultMethod}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = EtfcTextPrimary
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Action Buttons
+            // Action Buttons: Tale of Tape + Replay (if past) / Preview (if upcoming) + Download
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
-                    onClick = onWatchLive,
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .height(38.dp)
-                        .testTag("watch_bout_${bout.id}_btn"),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = EtfcGold,
-                        contentColor = Color.Black
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        tint = Color.Black,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (bout.status == BoutStatus.LIVE) "Watch Live" else "Stream Fight",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        color = Color.Black
-                    )
-                }
-
                 OutlinedButton(
                     onClick = onTaleOfTheTape,
                     modifier = Modifier
-                        .weight(1.1f)
+                        .weight(1.2f)
                         .height(38.dp)
                         .testTag("tale_bout_${bout.id}_btn"),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = EtfcTextPrimary),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, EtfcBorderSubtle)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EtfcGold.copy(alpha = 0.6f))
                 ) {
                     Icon(
                         imageVector = Icons.Default.Compare,
@@ -511,7 +711,55 @@ private fun BoutCardItem(
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Tale of Tape", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = "Tale of Tape", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = EtfcGold)
+                }
+
+                if (isPastEvent) {
+                    Button(
+                        onClick = onWatchReplay,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .testTag("replay_bout_${bout.id}_btn"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = EtfcCardInner,
+                            contentColor = EtfcTextPrimary
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, EtfcBorderSubtle)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = EtfcGold,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Replay",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = EtfcTextPrimary
+                        )
+                    }
+                } else {
+                    Surface(
+                        color = EtfcCardInner,
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, EtfcBorderSubtle),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "NOV 28 FIXTURE",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = EtfcTextMuted
+                            )
+                        }
+                    }
                 }
 
                 Surface(
