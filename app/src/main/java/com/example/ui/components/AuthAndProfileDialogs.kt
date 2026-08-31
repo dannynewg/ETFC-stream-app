@@ -737,7 +737,7 @@ fun UserProfileDrawer(
                 ) {
                     Icon(imageVector = Icons.Default.Security, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("OPEN ADMIN CMS & GITHUB SYNC", fontWeight = FontWeight.Black, fontSize = 11.5.sp)
+                    Text("OPEN ADMIN CRM & CMS PORTAL", fontWeight = FontWeight.Black, fontSize = 11.5.sp)
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))

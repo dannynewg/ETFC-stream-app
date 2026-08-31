@@ -78,7 +78,7 @@ fun AdminPanelScreen(
         "🖼️ Hero Slider" to dynamicSlides.size,
         "🎬 Fight Videos" to dynamicVideos.size,
         "📢 News" to dynamicNews.size,
-        "☁️ Cloud & GitHub" to 0
+        "🔥 Realtime Cloud & Admins" to 0
     )
 
     Scaffold(
@@ -365,7 +365,7 @@ fun AdminPanelScreen(
                     )
                 }
                 5 -> {
-                    AdminGitHubSyncTab(
+                    AdminCloudAndTeamTab(
                         viewModel = viewModel
                     )
                 }
@@ -2646,22 +2646,24 @@ fun AdminNewsTab(
 }
 
 @Composable
-fun AdminGitHubSyncTab(
+fun AdminCloudAndTeamTab(
     viewModel: EtfcViewModel
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    val adminInvites by viewModel.adminInvites.collectAsState()
+    var inviteEmailInput by remember { mutableStateOf("") }
     var inputJson by remember { mutableStateOf("") }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .testTag("admin_github_sync_tab"),
+            .testTag("admin_cloud_and_team_tab"),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(bottom = 88.dp)
     ) {
-        // Firebase Realtime Cloud Sync Card
+        // 1. Firebase Realtime Cloud Sync Card
         item {
             Card(
                 shape = RoundedCornerShape(12.dp),
@@ -2705,7 +2707,7 @@ fun AdminGitHubSyncTab(
                                     color = Color(0xFFFFCA28)
                                 )
                                 Text(
-                                    text = "Project: etfc-app-de76f (Live Firestore)",
+                                    text = "Live Firestore Snapshot Listeners Active",
                                     fontSize = 11.sp,
                                     color = EtfcTextMuted
                                 )
@@ -2728,7 +2730,7 @@ fun AdminGitHubSyncTab(
                     }
 
                     Text(
-                        text = "All admin edits to Fighters, Match Cards, Hero Slides, Fight Videos, and News automatically broadcast to all fan devices in real-time over Firestore snapshot listeners.",
+                        text = "All admin edits to Fighters, Match Cards, Hero Slides, Fight Videos, News, and Arena Chat broadcast live across all user devices in real time.",
                         fontSize = 11.sp,
                         color = EtfcTextSecondary
                     )
@@ -2749,11 +2751,11 @@ fun AdminGitHubSyncTab(
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("UPLOADING TO FIREBASE...", fontWeight = FontWeight.Black)
+                            Text("PUSHING TO FIREBASE...", fontWeight = FontWeight.Black)
                         } else {
                             Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("UPLOAD / RE-SYNC ALL DATA TO FIREBASE", fontWeight = FontWeight.Black)
+                            Text("PUSH / RE-SYNC ALL DATA TO FIREBASE", fontWeight = FontWeight.Black)
                         }
                     }
 
@@ -2768,6 +2770,92 @@ fun AdminGitHubSyncTab(
                 }
             }
         }
+
+        // 2. Invite Admin User Via Email Card
+        item {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = EtfcCard),
+                border = BorderStroke(1.dp, EtfcGold.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = EtfcGold.copy(alpha = 0.2f),
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.PersonAdd,
+                                    contentDescription = null,
+                                    tint = EtfcGold,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                        Column {
+                            Text(
+                                text = "👑 INVITE ADMIN USER VIA EMAIL",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Black,
+                                color = EtfcGold
+                            )
+                            Text(
+                                text = "Grant full Admin CRM & CMS access to a new team member",
+                                fontSize = 11.sp,
+                                color = EtfcTextMuted
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = inviteEmailInput,
+                        onValueChange = { inviteEmailInput = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("admin_invite_email_input"),
+                        label = { Text("Admin Email Address (e.g. colleague@etfc.stream)", fontSize = 11.sp) },
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = EtfcGold, modifier = Modifier.size(16.dp)) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            focusedTextColor = EtfcTextPrimary,
+                            unfocusedTextColor = EtfcTextPrimary
+                        )
+                    )
+
+                    Button(
+                        onClick = {
+                            if (inviteEmailInput.isNotBlank() && inviteEmailInput.contains("@")) {
+                                viewModel.inviteAdmin(inviteEmailInput.trim().lowercase())
+                                inviteEmailInput = ""
+                            }
+                        },
+                        enabled = inviteEmailInput.isNotBlank() && inviteEmailInput.contains("@"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = EtfcGold,
+                            contentColor = Color.Black
+                        ),
+                        modifier = Modifier.fillMaxWidth().testTag("btn_send_admin_invite")
+                    ) {
+                        Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("INVITE AS ADMIN USER", fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
+
+        // 3. Active Admin Team & Invites Card
         item {
             Card(
                 shape = RoundedCornerShape(12.dp),
@@ -2781,13 +2869,104 @@ fun AdminGitHubSyncTab(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "🐙 GITHUB REPOSITORY CONTENT ENGINE",
+                        text = "👥 ACTIVE ADMIN TEAM & ACCESS PERMISSIONS",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        color = EtfcTextPrimary
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        adminInvites.forEach { invite ->
+                            val isOwner = invite.email.equals("dannynewg@gmail.com", ignoreCase = true)
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = EtfcCardInner,
+                                border = BorderStroke(1.dp, if (isOwner) EtfcGold.copy(alpha = 0.6f) else EtfcBorderSubtle),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(if (isOwner) "👑" else "🛡️", fontSize = 16.sp)
+                                        Column {
+                                            Text(
+                                                text = invite.email,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                color = if (isOwner) EtfcGold else EtfcTextPrimary
+                                            )
+                                            Text(
+                                                text = if (isOwner) "Primary Superadmin" else "Invited by ${invite.invitedBy}",
+                                                fontSize = 10.sp,
+                                                color = EtfcTextMuted
+                                            )
+                                        }
+                                    }
+
+                                    if (isOwner) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = EtfcGold.copy(alpha = 0.2f),
+                                            border = BorderStroke(1.dp, EtfcGold)
+                                        ) {
+                                            Text(
+                                                text = "SUPERADMIN",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = EtfcGold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    } else {
+                                        IconButton(
+                                            onClick = { viewModel.revokeAdminInvite(invite.email) },
+                                            modifier = Modifier.size(28.dp).testTag("btn_revoke_${invite.email}")
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Revoke Admin",
+                                                tint = EtfcRedPrimary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Local Database Backup (JSON Export / Import)
+        item {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = EtfcCard),
+                border = BorderStroke(1.dp, EtfcBorderGold.copy(alpha = 0.3f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "💾 LOCAL DATABASE BACKUP & EXPORT",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Black,
                         color = EtfcGold
                     )
                     Text(
-                        text = "Export the entire SQLite database to version-controlled JSON schema, or sync updates from GitHub and remote endpoints.",
+                        text = "Export the entire SQLite database to JSON format or import from saved backup.",
                         fontSize = 11.sp,
                         color = EtfcTextMuted
                     )
@@ -2800,46 +2979,25 @@ fun AdminGitHubSyncTab(
                             inputJson = exported
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = EtfcGold,
-                            contentColor = Color.Black
+                            containerColor = EtfcCardInner,
+                            contentColor = EtfcGold
                         ),
+                        border = BorderStroke(1.dp, EtfcGold.copy(alpha = 0.5f)),
                         modifier = Modifier.fillMaxWidth().testTag("btn_export_github_json")
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("EXPORT DB TO JSON & COPY TO CLIPBOARD", fontWeight = FontWeight.Black)
                     }
-                }
-            }
-        }
-
-        item {
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = EtfcCard),
-                border = BorderStroke(1.dp, EtfcBorderGold.copy(alpha = 0.3f))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "📥 IMPORT / SYNC FROM JSON PAYLOAD",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = EtfcTextPrimary
-                    )
 
                     OutlinedTextField(
                         value = inputJson,
                         onValueChange = { inputJson = it },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(140.dp)
+                            .height(100.dp)
                             .testTag("input_github_json"),
-                        placeholder = { Text("Paste exported JSON schema here...", fontSize = 11.sp, color = EtfcTextMuted) },
+                        placeholder = { Text("Paste JSON backup here to restore...", fontSize = 11.sp, color = EtfcTextMuted) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = EtfcGold,
                             focusedTextColor = EtfcTextPrimary,
@@ -2860,7 +3018,7 @@ fun AdminGitHubSyncTab(
                         ),
                         modifier = Modifier.fillMaxWidth().testTag("btn_import_github_json")
                     ) {
-                        Text(if (uiState.isSyncingGitHub) "SYNCING..." else "PARSE & IMPORT TO SQLITE", fontWeight = FontWeight.Black)
+                        Text(if (uiState.isSyncingGitHub) "RESTORING..." else "PARSE & RESTORE BACKUP", fontWeight = FontWeight.Black)
                     }
 
                     if (uiState.githubSyncStatusMessage != null) {

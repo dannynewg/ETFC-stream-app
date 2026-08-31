@@ -314,7 +314,7 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
             repository.getAllUsersFlow().collectLatest { users ->
                 _uiState.value = _uiState.value.copy(
                     allDemoUsers = users,
-                    currentUser = _uiState.value.currentUser ?: users.firstOrNull { it.role == UserRole.MODERATOR } ?: users.firstOrNull()
+                    currentUser = _uiState.value.currentUser ?: users.firstOrNull { it.isAdmin } ?: users.firstOrNull()
                 )
             }
         }
@@ -422,7 +422,7 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
                         displayName = senderName,
                         phoneNumber = "+251911999999",
                         flagEmoji = flag,
-                        role = UserRole.PPV_BUYER,
+                        role = UserRole.USER,
                         authToken = "ETFC.SIM.TOKEN"
                     )
 
@@ -563,17 +563,6 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
             val result = repository.processPpvPayment(tier, provider, "${provider.defaultPrefix}$phone")
             if (result.isSuccess) {
                 val pass = result.getOrThrow()
-                // Role elevation upon successful payment
-                val elevatedRole = if (tier.id == "tier_vip_ringside") UserRole.VIP_MEMBER else UserRole.PPV_BUYER
-                _uiState.value.currentUser?.let { user ->
-                    if (user.role.tierLevel < elevatedRole.tierLevel) {
-                        repository.switchUserRole(user.userId, elevatedRole)
-                        _uiState.value = _uiState.value.copy(
-                            currentUser = user.copy(role = elevatedRole)
-                        )
-                    }
-                }
-
                 _uiState.value = _uiState.value.copy(
                     paymentUiState = PaymentUiState.Success(pass)
                 )
@@ -784,9 +773,9 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // VIP only chat check
-        if (_uiState.value.isVipOnlyChat && user.role.tierLevel < UserRole.VIP_MEMBER.tierLevel) {
+        if (_uiState.value.isVipOnlyChat && !user.role.canModerate()) {
             _uiState.value = _uiState.value.copy(
-                chatSnackbarMessage = "Chat is currently locked to VIP Ringside members."
+                chatSnackbarMessage = "Chat is currently locked by admin."
             )
             return
         }
@@ -837,7 +826,7 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
             handle = "@cheer_fan",
             displayName = "Arena Fan",
             phoneNumber = "",
-            role = UserRole.FREE_USER,
+            role = UserRole.USER,
             authToken = "ETFC.GUEST"
         )
         val targetBoutId = _uiState.value.selectedBout?.id ?: "bout_sedo_jhonny"
@@ -1484,6 +1473,32 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
                 firebaseSyncStatusMessage = "🟢 Firebase Realtime Sync Active & Up-to-Date",
                 settingsSnackbarMessage = "☁️ All content pushed to Firebase Firestore live!"
             )
+        }
+    }
+
+    val adminInvites: StateFlow<List<com.example.data.models.AdminInvite>> = repository.adminInvites
+
+    fun inviteAdmin(email: String) {
+        val currentUserEmail = _uiState.value.currentUser?.email ?: "dannynewg@gmail.com"
+        viewModelScope.launch {
+            val res = repository.inviteAdminUser(email.trim(), currentUserEmail)
+            if (res.isSuccess) {
+                _uiState.value = _uiState.value.copy(
+                    settingsSnackbarMessage = "👑 Admin invitation sent to $email",
+                    chatSnackbarMessage = "👑 Admin invite active for $email"
+                )
+            }
+        }
+    }
+
+    fun revokeAdminInvite(email: String) {
+        viewModelScope.launch {
+            val res = repository.revokeAdminInvite(email.trim())
+            if (res.isSuccess) {
+                _uiState.value = _uiState.value.copy(
+                    settingsSnackbarMessage = "Revoked admin invite for $email"
+                )
+            }
         }
     }
 

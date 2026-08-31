@@ -43,12 +43,18 @@ import com.example.data.models.UserAccount
 import com.example.data.models.UserRole
 import com.example.data.models.VideoCategory
 import com.example.data.models.WeightClass
+import com.example.data.models.AdminInvite
 import com.example.data.security.SecurityUtils
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -1293,8 +1299,18 @@ class EtfcRepository(
 
         val userId = "usr_${UUID.randomUUID().toString().take(8)}"
         val passwordHash = SecurityUtils.hashPassword(password)
-        val role = if (email.trim().equals("dannynewg@gmail.com", ignoreCase = true)) UserRole.ADMIN.name else UserRole.USER.name
+        val isAdminEmail = email.trim().equals("dannynewg@gmail.com", ignoreCase = true) || (syncManager?.isEmailInvitedAdmin(email) ?: false)
+        val role = if (isAdminEmail) UserRole.ADMIN.name else UserRole.USER.name
         val token = SecurityUtils.generateAuthToken(userId, role)
+
+        // Attempt Firebase Auth account creation for real online authentication
+        try {
+            com.google.firebase.auth.FirebaseAuth.getInstance()
+                .createUserWithEmailAndPassword(email.trim().lowercase(), password)
+                .await()
+        } catch (e: Exception) {
+            Log.w("EtfcRepository", "Firebase Auth register note: ${e.message}")
+        }
 
         val newEntity = UserAccountEntity(
             userId = userId,
@@ -1312,11 +1328,25 @@ class EtfcRepository(
         )
 
         dao.insertUser(newEntity)
-        return AuthResult.Success(mapUserEntityToModel(newEntity), "Registration successful! Welcome to ETFC.")
+        val userModel = mapUserEntityToModel(newEntity)
+        syncManager?.pushUserToCloud(userModel)
+        return AuthResult.Success(userModel, "Registration successful! Welcome to ETFC.")
     }
 
     suspend fun loginUser(identifier: String, password: String): AuthResult {
         val cleanId = identifier.trim().lowercase()
+        
+        // Attempt Firebase Auth sign in if email provided
+        if (cleanId.contains("@")) {
+            try {
+                com.google.firebase.auth.FirebaseAuth.getInstance()
+                    .signInWithEmailAndPassword(cleanId, password)
+                    .await()
+            } catch (e: Exception) {
+                Log.w("EtfcRepository", "Firebase Auth login note: ${e.message}")
+            }
+        }
+
         val userEntity = dao.getUserByEmailOrHandle(cleanId)
             ?: dao.getUserByHandle("@${cleanId.removePrefix("@")}")
 
@@ -1333,15 +1363,38 @@ class EtfcRepository(
             return AuthResult.Error("Incorrect password. Please try again.")
         }
 
-        val newToken = SecurityUtils.generateAuthToken(userEntity.userId, userEntity.role)
+        // Check if user is admin in Firestore users collection or invited admins or superadmin
+        val cloudRole = syncManager?.fetchUserRole(userEntity.email) ?: "user"
+        val isAdminEmail = userEntity.email.equals("dannynewg@gmail.com", ignoreCase = true) || 
+            (syncManager?.isEmailInvitedAdmin(userEntity.email) ?: false) || 
+            cloudRole == "admin"
+        val currentRole = if (isAdminEmail) UserRole.ADMIN.name else UserRole.USER.name
+        val newToken = SecurityUtils.generateAuthToken(userEntity.userId, currentRole)
         dao.updateLastLogin(userEntity.userId, System.currentTimeMillis(), newToken)
+        dao.updateUserRole(userEntity.userId, currentRole)
 
         val updatedEntity = userEntity.copy(
+            role = currentRole,
             lastLoginTimestamp = System.currentTimeMillis(),
             authToken = newToken
         )
 
-        return AuthResult.Success(mapUserEntityToModel(updatedEntity), "Welcome back, ${updatedEntity.displayName}!")
+        val model = mapUserEntityToModel(updatedEntity)
+        syncManager?.pushUserToCloud(model)
+
+        return AuthResult.Success(model, "Welcome back, ${updatedEntity.displayName}!")
+    }
+
+    val adminInvites: StateFlow<List<AdminInvite>> = syncManager?.adminInvites ?: MutableStateFlow(
+        listOf(AdminInvite("dannynewg@gmail.com", "Owner", 0L, "ACTIVE_OWNER"))
+    ).asStateFlow()
+
+    suspend fun inviteAdminUser(email: String, invitedBy: String = "dannynewg@gmail.com"): Result<Unit> {
+        return syncManager?.inviteAdminUser(email, invitedBy) ?: Result.success(Unit)
+    }
+
+    suspend fun revokeAdminInvite(email: String): Result<Unit> {
+        return syncManager?.revokeAdminInvite(email) ?: Result.success(Unit)
     }
 
     suspend fun switchUserRole(userId: String, newRole: UserRole) {
@@ -1353,7 +1406,8 @@ class EtfcRepository(
     }
 
     private fun mapUserEntityToModel(entity: UserAccountEntity): UserAccount {
-        val parsedRole = if (entity.email.equals("dannynewg@gmail.com", ignoreCase = true)) {
+        val isAdminEmail = entity.email.equals("dannynewg@gmail.com", ignoreCase = true) || (syncManager?.isEmailInvitedAdmin(entity.email) ?: false)
+        val parsedRole = if (isAdminEmail) {
             UserRole.ADMIN
         } else {
             try {
@@ -1465,7 +1519,7 @@ class EtfcRepository(
         val mentionedJoined = mentions.joinToString(",")
 
         val msgId = "msg_${UUID.randomUUID().toString().take(10)}"
-        val isSuperFan = user.role == UserRole.VIP_MEMBER || user.role == UserRole.PPV_BUYER || user.role.canModerate()
+        val isSuperFan = user.isAdmin || user.role == UserRole.ADMIN
 
         val entity = ChatMessageEntity(
             messageId = msgId,

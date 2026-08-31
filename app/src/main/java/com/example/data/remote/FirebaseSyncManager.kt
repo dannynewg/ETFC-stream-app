@@ -17,6 +17,8 @@ import com.example.data.models.Fighter
 import com.example.data.models.HeroSlide
 import com.example.data.models.NewsArticle
 import com.example.data.models.PreviousFightVideo
+import com.example.data.models.UserAccount
+import com.example.data.models.UserRole
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
@@ -41,7 +43,10 @@ class FirebaseSyncManager(
         const val COLL_HERO_SLIDES = "hero_slides"
         const val COLL_VIDEOS = "previous_fight_videos"
         const val COLL_NEWS = "news_announcements"
+        const val COLL_ANNOUNCEMENTS = "announcements"
+        const val COLL_USERS = "users"
         const val COLL_CHAT = "arena_chat"
+        const val COLL_ADMIN_INVITES = "admin_invites"
     }
 
     private val firestore: FirebaseFirestore by lazy {
@@ -59,6 +64,18 @@ class FirebaseSyncManager(
 
     private val _syncStatusMessage = MutableStateFlow("Firebase Realtime Sync Active")
     val syncStatusMessage: StateFlow<String> = _syncStatusMessage.asStateFlow()
+
+    private val _adminInvites = MutableStateFlow<List<com.example.data.models.AdminInvite>>(
+        listOf(
+            com.example.data.models.AdminInvite(
+                email = "dannynewg@gmail.com",
+                invitedBy = "Owner / Superadmin",
+                timestamp = System.currentTimeMillis(),
+                status = "ACTIVE_OWNER"
+            )
+        )
+    )
+    val adminInvites: StateFlow<List<com.example.data.models.AdminInvite>> = _adminInvites.asStateFlow()
 
     private val listeners = mutableListOf<ListenerRegistration>()
 
@@ -402,6 +419,52 @@ class FirebaseSyncManager(
                 }
             listeners.add(newsListener)
 
+            // 5b. Listen to Firestore 'announcements' collection (alias for news_announcements)
+            val announcementsListener = firestore.collection(COLL_ANNOUNCEMENTS)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) return@addSnapshotListener
+                    snapshot?.let { querySnap ->
+                        coroutineScope.launch(Dispatchers.IO) {
+                            for (doc in querySnap.documents) {
+                                try {
+                                    val data = doc.data ?: continue
+                                    val id = doc.id
+                                    val title = (data["title"] as? String) ?: continue
+                                    val summary = (data["summary"] as? String) ?: (data["content"] as? String)?.take(120) ?: ""
+                                    val fullContent = (data["fullContent"] as? String) ?: (data["content"] as? String) ?: ""
+                                    val author = (data["author"] as? String) ?: "ETFC Media Team"
+                                    val authorRole = (data["authorRole"] as? String) ?: "ETFC Official Press"
+                                    val publishedDate = (data["publishedDate"] as? String) ?: "TODAY"
+                                    val category = (data["category"] as? String) ?: "PRESS_RELEASE"
+                                    val imageUrl = data["imageUrl"] as? String
+
+                                    val newsEntity = NewsArticleEntity(
+                                        id = id,
+                                        title = title,
+                                        summary = summary,
+                                        fullContent = fullContent,
+                                        category = category,
+                                        author = author,
+                                        authorRole = authorRole,
+                                        publishedDate = publishedDate,
+                                        readTimeMinutes = (data["readTimeMinutes"] as? Number)?.toInt() ?: 3,
+                                        isFeatured = data["isFeatured"] as? Boolean ?: true,
+                                        tags = data["tags"] as? String ?: "",
+                                        relatedFighterNames = data["relatedFighterNames"] as? String ?: "",
+                                        imageUrl = imageUrl,
+                                        timestamp = (data["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis()
+                                    )
+                                    dao.insertNewsArticle(newsEntity)
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error parsing announcement from Firestore", e)
+                                }
+                            }
+                            _lastSyncTimestamp.value = System.currentTimeMillis()
+                        }
+                    }
+                }
+            listeners.add(announcementsListener)
+
             // 6. Listen to Live Arena Chat
             val chatListener = firestore.collection(COLL_CHAT)
                 .addSnapshotListener { snapshot, error ->
@@ -420,7 +483,7 @@ class FirebaseSyncManager(
                                     val userHandle = data["userHandle"] as? String ?: "@etfc_fan"
                                     val userName = data["userName"] as? String ?: (data["sender"] as? String ?: "Fan")
                                     val userFlag = data["userFlag"] as? String ?: "🇪🇹"
-                                    val userRole = data["userRole"] as? String ?: "FREE_USER"
+                                    val userRole = data["userRole"] as? String ?: "USER"
                                     val messageText = data["messageText"] as? String ?: (data["message"] as? String ?: continue)
                                     val isSuperFan = data["isSuperFan"] as? Boolean ?: (data["isVip"] as? Boolean ?: false)
                                     val isPinned = data["isPinned"] as? Boolean ?: false
@@ -455,10 +518,157 @@ class FirebaseSyncManager(
                 }
             listeners.add(chatListener)
 
+            // 7. Listen to Admin Team Invites
+            val invitesListener = firestore.collection(COLL_ADMIN_INVITES)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Admin invites listener error: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    snapshot?.let { querySnap ->
+                        val list = mutableListOf(
+                            com.example.data.models.AdminInvite(
+                                email = "dannynewg@gmail.com",
+                                invitedBy = "Owner / Superadmin",
+                                timestamp = 0L,
+                                status = "ACTIVE_OWNER"
+                            )
+                        )
+                        for (doc in querySnap.documents) {
+                            val email = (doc.data?.get("email") as? String) ?: doc.id
+                            if (email.isNotBlank() && !email.equals("dannynewg@gmail.com", ignoreCase = true)) {
+                                val invitedBy = doc.data?.get("invitedBy") as? String ?: "dannynewg@gmail.com"
+                                val ts = (doc.data?.get("timestamp") as? Number)?.toLong() ?: System.currentTimeMillis()
+                                val status = doc.data?.get("status") as? String ?: "ACTIVE"
+                                list.add(com.example.data.models.AdminInvite(email, invitedBy, ts, status))
+                            }
+                        }
+                        _adminInvites.value = list
+                    }
+                }
+            listeners.add(invitesListener)
+
+            // 8. Listen to Firestore 'users' collection for live Role and Profile updates
+            val usersListener = firestore.collection(COLL_USERS)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) return@addSnapshotListener
+                    snapshot?.let { querySnap ->
+                        coroutineScope.launch(Dispatchers.IO) {
+                            for (doc in querySnap.documents) {
+                                try {
+                                    val data = doc.data ?: continue
+                                    val userId = (data["userId"] as? String) ?: doc.id
+                                    val email = (data["email"] as? String)?.trim()?.lowercase() ?: ""
+                                    val roleStr = (data["role"] as? String)?.lowercase() ?: "user"
+                                    val isAdmin = email.equals("dannynewg@gmail.com", ignoreCase = true) || roleStr == "admin"
+                                    val roleName = if (isAdmin) com.example.data.models.UserRole.ADMIN.name else com.example.data.models.UserRole.USER.name
+
+                                    if (email.isNotBlank()) {
+                                        val existing = dao.getUserByEmail(email)
+                                        if (existing != null) {
+                                            dao.updateUserRole(existing.userId, roleName)
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error updating local user from Firestore", e)
+                                }
+                            }
+                        }
+                    }
+                }
+            listeners.add(usersListener)
+
             _syncStatusMessage.value = "🟢 Connected to Firebase Firestore (Live Sync)"
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start realtime sync", e)
             _syncStatusMessage.value = "⚠️ Local Mode (Firebase init pending): ${e.localizedMessage}"
+        }
+    }
+
+    fun isEmailInvitedAdmin(email: String): Boolean {
+        if (email.trim().equals("dannynewg@gmail.com", ignoreCase = true)) return true
+        return _adminInvites.value.any { it.email.equals(email.trim(), ignoreCase = true) }
+    }
+
+    suspend fun inviteAdminUser(email: String, invitedBy: String = "dannynewg@gmail.com"): Result<Unit> = withContext(Dispatchers.IO) {
+        val cleanEmail = email.trim().lowercase()
+        try {
+            val ts = System.currentTimeMillis()
+            val map = hashMapOf(
+                "email" to cleanEmail,
+                "invitedBy" to invitedBy,
+                "timestamp" to ts,
+                "status" to "ACTIVE"
+            )
+            firestore.collection(COLL_ADMIN_INVITES).document(cleanEmail).set(map, SetOptions.merge()).await()
+
+            // Update or create in Firestore 'users' collection with role = 'admin'
+            val userDocs = firestore.collection(COLL_USERS).whereEqualTo("email", cleanEmail).get().await()
+            if (!userDocs.isEmpty) {
+                for (doc in userDocs.documents) {
+                    firestore.collection(COLL_USERS).document(doc.id).update("role", "admin", "updatedAt", ts).await()
+                }
+            } else {
+                val docId = "usr_${cleanEmail.replace("@", "_").replace(".", "_")}"
+                val placeholderMap = hashMapOf(
+                    "userId" to docId,
+                    "email" to cleanEmail,
+                    "role" to "admin",
+                    "displayName" to cleanEmail.substringBefore("@").replaceFirstChar { it.uppercase() },
+                    "handle" to "@${cleanEmail.substringBefore("@")}",
+                    "createdTimestamp" to ts,
+                    "lastLoginTimestamp" to ts,
+                    "isBanned" to false,
+                    "isMutedUntilTimestamp" to 0L
+                )
+                firestore.collection(COLL_USERS).document(docId).set(placeholderMap, SetOptions.merge()).await()
+            }
+
+            // Sync to local Room database
+            val localUser = dao.getUserByEmail(cleanEmail)
+            if (localUser != null) {
+                dao.updateUserRole(localUser.userId, com.example.data.models.UserRole.ADMIN.name)
+            }
+
+            val currentList = _adminInvites.value.filter { !it.email.equals(cleanEmail, ignoreCase = true) }.toMutableList()
+            currentList.add(com.example.data.models.AdminInvite(cleanEmail, invitedBy, ts, "ACTIVE"))
+            _adminInvites.value = currentList
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create admin invite in Firestore", e)
+            val currentList = _adminInvites.value.filter { !it.email.equals(cleanEmail, ignoreCase = true) }.toMutableList()
+            currentList.add(com.example.data.models.AdminInvite(cleanEmail, invitedBy, System.currentTimeMillis(), "ACTIVE (Local)"))
+            _adminInvites.value = currentList
+            Result.success(Unit)
+        }
+    }
+
+    suspend fun revokeAdminInvite(email: String): Result<Unit> = withContext(Dispatchers.IO) {
+        val cleanEmail = email.trim().lowercase()
+        if (cleanEmail.equals("dannynewg@gmail.com", ignoreCase = true)) {
+            return@withContext Result.failure(IllegalStateException("Cannot revoke superadmin owner"))
+        }
+        try {
+            firestore.collection(COLL_ADMIN_INVITES).document(cleanEmail).delete().await()
+
+            // Update role to 'user' in Firestore 'users' collection
+            val userDocs = firestore.collection(COLL_USERS).whereEqualTo("email", cleanEmail).get().await()
+            for (doc in userDocs.documents) {
+                firestore.collection(COLL_USERS).document(doc.id).update("role", "user", "updatedAt", System.currentTimeMillis()).await()
+            }
+
+            // Sync to local Room database
+            val localUser = dao.getUserByEmail(cleanEmail)
+            if (localUser != null) {
+                dao.updateUserRole(localUser.userId, com.example.data.models.UserRole.USER.name)
+            }
+
+            _adminInvites.value = _adminInvites.value.filter { !it.email.equals(cleanEmail, ignoreCase = true) }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to revoke admin invite in Firestore", e)
+            _adminInvites.value = _adminInvites.value.filter { !it.email.equals(cleanEmail, ignoreCase = true) }
+            Result.success(Unit)
         }
     }
 
@@ -682,6 +892,49 @@ class FirebaseSyncManager(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send chat to Firestore", e)
         }
+    }
+
+    suspend fun pushUserToCloud(user: UserAccount) = withContext(Dispatchers.IO) {
+        try {
+            val cleanEmail = user.email.trim().lowercase()
+            val isAdmin = cleanEmail.equals("dannynewg@gmail.com", ignoreCase = true) || isEmailInvitedAdmin(cleanEmail) || user.role == UserRole.ADMIN
+            val roleStr = if (isAdmin) "admin" else "user"
+            val map = hashMapOf(
+                "userId" to user.userId,
+                "email" to cleanEmail,
+                "role" to roleStr,
+                "displayName" to user.displayName,
+                "handle" to user.handle,
+                "phoneNumber" to user.phoneNumber,
+                "countryCode" to user.countryCode,
+                "flagEmoji" to user.flagEmoji,
+                "lastLoginTimestamp" to System.currentTimeMillis()
+            )
+            firestore.collection(COLL_USERS).document(user.userId).set(map, SetOptions.merge()).await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to push user to Firestore", e)
+        }
+    }
+
+    suspend fun fetchUserRole(emailOrUserId: String): String = withContext(Dispatchers.IO) {
+        val clean = emailOrUserId.trim().lowercase()
+        if (clean.equals("dannynewg@gmail.com", ignoreCase = true) || isEmailInvitedAdmin(clean)) {
+            return@withContext "admin"
+        }
+        try {
+            val byEmail = firestore.collection(COLL_USERS).whereEqualTo("email", clean).get().await()
+            if (!byEmail.isEmpty) {
+                val doc = byEmail.documents.first()
+                return@withContext doc.getString("role")?.lowercase() ?: "user"
+            }
+            val byId = firestore.collection(COLL_USERS).document(emailOrUserId).get().await()
+            if (byId.exists()) {
+                return@withContext byId.getString("role")?.lowercase() ?: "user"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching user role from Firestore", e)
+        }
+        return@withContext "user"
     }
 
     /**
