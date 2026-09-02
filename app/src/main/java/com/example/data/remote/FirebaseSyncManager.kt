@@ -55,6 +55,10 @@ class FirebaseSyncManager(
         FirebaseFirestore.getInstance()
     }
 
+    val userDataManager: UserDataManager by lazy {
+        UserDataManager(context, dao, firestore, coroutineScope)
+    }
+
     private val _isCloudSyncEnabled = MutableStateFlow(true)
     val isCloudSyncEnabled: StateFlow<Boolean> = _isCloudSyncEnabled.asStateFlow()
 

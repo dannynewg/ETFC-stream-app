@@ -231,6 +231,7 @@ private fun FighterCardItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -239,16 +240,20 @@ private fun FighterCardItem(
                         size = 52.dp,
                         corner = if (fighter.isChampion) AvatarCorner.GOLD else AvatarCorner.NONE
                     )
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             Text(
                                 text = fighter.name.uppercase(),
                                 color = EtfcTextPrimary,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Black
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                             if (fighter.isChampion) {
-                                Spacer(modifier = Modifier.width(6.dp))
                                 Surface(
                                     color = EtfcGold.copy(alpha = 0.15f),
                                     shape = RoundedCornerShape(4.dp),
@@ -259,6 +264,7 @@ private fun FighterCardItem(
                                         color = EtfcGold,
                                         fontSize = 8.sp,
                                         fontWeight = FontWeight.Black,
+                                        maxLines = 1,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                     )
                                 }
@@ -268,7 +274,9 @@ private fun FighterCardItem(
                             text = "\"${fighter.nickname}\" • ${fighter.countryName}",
                             color = EtfcGold,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -325,24 +333,25 @@ private fun FighterCardItem(
                     .clip(RoundedCornerShape(8.dp))
                     .background(EtfcCardInner)
                     .border(1.dp, EtfcBorderSubtle, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("RECORD", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                    Text("${fighter.wins}-${fighter.losses}-${fighter.draws}", color = EtfcTextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("RECORD", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text("${fighter.wins}-${fighter.losses}-${fighter.draws}", color = EtfcTextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("KO / FINISH", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                    Text("${fighter.kos} KOs", color = EtfcRedPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("KO / FINISH", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text("${fighter.kos} KOs", color = EtfcRedPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("HEIGHT", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                    Text("${fighter.heightCm} cm", color = EtfcTextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("HEIGHT", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text("${fighter.heightCm} cm", color = EtfcTextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("REACH", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                    Text("${fighter.reachInches}\"", color = EtfcTextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("REACH", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text("${fighter.reachInches}\"", color = EtfcTextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
             }
 
@@ -367,12 +376,17 @@ private fun FighterCardItem(
                     text = "Signature: ${fighter.signatureMove}",
                     color = EtfcGold,
                     fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Stance: ${fighter.stance}",
                     color = EtfcTextMuted,
-                    fontSize = 10.sp
+                    fontSize = 10.sp,
+                    maxLines = 1
                 )
             }
 

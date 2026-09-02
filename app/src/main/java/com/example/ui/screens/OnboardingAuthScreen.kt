@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -188,6 +190,8 @@ fun OnboardingAuthScreen(
 
     var isSubmitting by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     // Validation Logic
     val emailRegex = remember { Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$") }
@@ -339,7 +343,11 @@ fun OnboardingAuthScreen(
                     ) {
                         Tab(
                             selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
+                            onClick = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                                selectedTab = 0
+                            },
                             text = {
                                 Text(
                                     "Sign In",
@@ -352,7 +360,11 @@ fun OnboardingAuthScreen(
                         )
                         Tab(
                             selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
+                            onClick = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                                selectedTab = 1
+                            },
                             text = {
                                 Text(
                                     "Create Account",
@@ -495,6 +507,8 @@ fun OnboardingAuthScreen(
 
                         Button(
                             onClick = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
                                 isSubmitting = true
                                 onLogin(loginIdentifier.trim(), loginPassword)
                             },
@@ -830,6 +844,8 @@ fun OnboardingAuthScreen(
 
                         Button(
                             onClick = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
                                 isSubmitting = true
                                 val finalHandle = if (regHandle.startsWith("@")) regHandle.trim() else "@${regHandle.trim()}"
                                 onRegister(

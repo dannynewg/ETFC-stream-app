@@ -284,6 +284,10 @@ class UserDataManager(
         }
     }
 
+    suspend fun syncUserProfile(user: UserAccount) {
+        syncUserProfileToFirestore(user)
+    }
+
     /**
      * Updates a user's role field in Firestore 'users' collection.
      */

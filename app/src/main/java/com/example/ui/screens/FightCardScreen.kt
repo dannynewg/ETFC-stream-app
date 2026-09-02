@@ -485,39 +485,19 @@ private fun BoutCardItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                Surface(
+                    color = Color(bout.boutType.badgeColorHex).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(4.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(bout.boutType.badgeColorHex))
                 ) {
-                    Surface(
-                        color = Color(bout.boutType.badgeColorHex).copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(4.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(bout.boutType.badgeColorHex))
-                    ) {
-                        Text(
-                            text = bout.boutType.label,
-                            color = Color(bout.boutType.badgeColorHex),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 0.5.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-
-                    Surface(
-                        color = EtfcCardInner,
-                        shape = RoundedCornerShape(4.dp),
-                        border = androidx.compose.foundation.BorderStroke(0.5.dp, EtfcBorderSubtle)
-                    ) {
-                        Text(
-                            text = bout.matchTitle,
-                            color = EtfcGold,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
+                    Text(
+                        text = bout.boutType.label,
+                        color = Color(bout.boutType.badgeColorHex),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.5.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
                 }
 
                 Row(
@@ -525,26 +505,60 @@ private fun BoutCardItem(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     if (bout.isTitleFight) {
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = null,
-                            tint = EtfcGold,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = "TITLE FIGHT",
-                            color = EtfcGold,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        )
+                        Surface(
+                            color = EtfcGold.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(4.dp),
+                            border = androidx.compose.foundation.BorderStroke(0.5.dp, EtfcGold.copy(alpha = 0.5f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.EmojiEvents,
+                                    contentDescription = null,
+                                    tint = EtfcGold,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "TITLE FIGHT",
+                                    color = EtfcGold,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.5.sp,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     } else {
                         Text(
                             text = "${bout.scheduledRounds} Rounds",
                             color = EtfcTextMuted,
-                            fontSize = 10.sp
+                            fontSize = 10.sp,
+                            maxLines = 1
                         )
                     }
+                }
+            }
+
+            if (bout.matchTitle.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    color = EtfcCardInner,
+                    shape = RoundedCornerShape(4.dp),
+                    border = androidx.compose.foundation.BorderStroke(0.5.dp, EtfcBorderSubtle)
+                ) {
+                    Text(
+                        text = bout.matchTitle,
+                        color = EtfcGold,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.5.sp,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
                 }
             }
 

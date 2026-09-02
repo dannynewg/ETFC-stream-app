@@ -697,16 +697,25 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
         } else null
     )
 
-    // 7. Admin & CMS Portal (Admins Only)
-    if (uiState.isAdminPortalOpen && (uiState.currentUser?.isAdmin == true || uiState.currentUser?.role == com.example.data.models.UserRole.ADMIN)) {
+    // 7. Admin & CMS Portal (Secured with AdminGuard)
+    if (uiState.isAdminPortalOpen) {
         androidx.compose.ui.window.Dialog(
             onDismissRequest = { viewModel.closeAdminPortal() },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
         ) {
-            com.example.ui.screens.AdminPanelScreen(
-                viewModel = viewModel,
-                onNavigateBack = { viewModel.closeAdminPortal() }
-            )
+            com.example.ui.components.AdminGuard(
+                currentUser = uiState.currentUser,
+                fallback = {
+                    com.example.ui.components.AdminAccessDeniedScreen(
+                        onDismiss = { viewModel.closeAdminPortal() }
+                    )
+                }
+            ) {
+                com.example.ui.screens.AdminPanelScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { viewModel.closeAdminPortal() }
+                )
+            }
         }
     }
 }

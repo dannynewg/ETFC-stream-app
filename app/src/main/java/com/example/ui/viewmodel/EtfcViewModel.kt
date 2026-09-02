@@ -160,6 +160,7 @@ data class EtfcUiState(
 class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
     val syncManager: com.example.data.remote.FirebaseSyncManager
+    val authRepository: com.example.data.repository.AuthenticationRepository
     private val repository: EtfcRepository
     val notificationManager: com.example.notifications.EtfcNotificationManager
 
@@ -192,6 +193,7 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
     init {
         val db = EtfcDatabase.getDatabase(application)
         syncManager = com.example.data.remote.FirebaseSyncManager(application, db.etfcDao(), viewModelScope)
+        authRepository = com.example.data.repository.AuthenticationRepository(userDataManager = syncManager.userDataManager, coroutineScope = viewModelScope)
         repository = EtfcRepository(db.etfcDao(), syncManager)
         notificationManager = com.example.notifications.EtfcNotificationManager(application)
 
@@ -321,35 +323,19 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Firebase Auth State Listener (Single Source of Truth)
-        try {
-            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-            val initialFbUser = auth.currentUser
-            if (initialFbUser != null) {
-                viewModelScope.launch {
-                    val syncedUser = repository.syncCurrentFirebaseUser()
-                    _uiState.value = _uiState.value.copy(currentUser = syncedUser)
-                }
-            } else {
-                _uiState.value = _uiState.value.copy(currentUser = null)
-            }
-
-            auth.addAuthStateListener { firebaseAuth ->
-                val fbUser = firebaseAuth.currentUser
+        // Authentication State Flow from AuthenticationRepository (Single Source of Truth)
+        viewModelScope.launch {
+            authRepository.authStateFlow.collectLatest { fbUser ->
                 if (fbUser == null) {
                     _uiState.value = _uiState.value.copy(
                         currentUser = null,
                         isProfileDrawerVisible = false
                     )
                 } else {
-                    viewModelScope.launch {
-                        val syncedUser = repository.syncCurrentFirebaseUser()
-                        _uiState.value = _uiState.value.copy(currentUser = syncedUser)
-                    }
+                    val syncedUser = repository.syncCurrentFirebaseUser()
+                    _uiState.value = _uiState.value.copy(currentUser = syncedUser)
                 }
             }
-        } catch (e: Exception) {
-            Log.w("EtfcViewModel", "Firebase Auth listener init: ${e.message}")
         }
 
         // Observe Live Chat Messages for current bout
@@ -642,7 +628,8 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
     fun login(identifier: String, password: String) {
         viewModelScope.launch {
-            val result = repository.loginUser(identifier, password)
+            _uiState.value = _uiState.value.copy(authErrorMessage = null)
+            val result = authRepository.signIn(identifier, password)
             when (result) {
                 is AuthResult.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -669,14 +656,13 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
         flagEmoji: String
     ) {
         viewModelScope.launch {
-            val result = repository.registerUser(
+            _uiState.value = _uiState.value.copy(authErrorMessage = null)
+            val result = authRepository.signUp(
                 email = email,
-                handle = handle,
-                displayName = displayName,
                 password = password,
-                phoneNumber = phoneNumber,
-                countryCode = countryCode,
-                flagEmoji = flagEmoji
+                displayName = displayName,
+                handle = handle,
+                phoneNumber = phoneNumber
             )
             when (result) {
                 is AuthResult.Success -> {
@@ -748,7 +734,7 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
     fun sendPasswordResetEmail(email: String, onResult: (Boolean, String) -> Unit = { _, _ -> }) {
         viewModelScope.launch {
-            val result = repository.sendPasswordResetEmail(email)
+            val result = authRepository.sendPasswordResetEmail(email)
             if (result.isSuccess) {
                 onResult(true, "Password reset link sent to $email. Please check your inbox.")
             } else {
@@ -759,6 +745,7 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logout() {
         viewModelScope.launch {
+            authRepository.signOut()
             repository.signOut()
             _uiState.value = _uiState.value.copy(
                 currentUser = null,

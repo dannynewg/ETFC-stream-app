@@ -665,6 +665,7 @@ fun YouTubeEmbeddedPlayer(
     var hasRendererCrashed by remember { mutableStateOf(false) }
 
     if (hasRendererCrashed) {
+        val context = LocalContext.current
         Box(
             modifier = modifier
                 .background(Color.Black)
@@ -673,21 +674,41 @@ fun YouTubeEmbeddedPlayer(
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
                     text = "Player recovery mode active",
                     color = EtfcGold,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Button(
-                    onClick = {
-                        hasRendererCrashed = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = EtfcGold)
-                ) {
-                    Text("Retry Playback", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Rendering safely with stream compatibility",
+                    color = EtfcTextMuted,
+                    fontSize = 11.sp
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            hasRendererCrashed = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = EtfcCardInner),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, EtfcBorderGold)
+                    ) {
+                        Text("Retry In-App", color = EtfcGold, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    }
+                    Button(
+                        onClick = {
+                            val directUrl = if (videoId != null) "https://www.youtube.com/watch?v=$videoId" else "https://www.youtube.com/playlist?list=$playlistId"
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(directUrl))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = EtfcGold)
+                    ) {
+                        Text("Watch on YouTube", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    }
                 }
             }
         }
@@ -701,13 +722,10 @@ fun YouTubeEmbeddedPlayer(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                     setBackgroundColor(0xFF07090E.toInt())
+                    // Set layer type to NONE/SOFTWARE to avoid MESA GPU rendernode crashes in virtualized environments
                     try {
-                        setLayerType(View.LAYER_TYPE_HARDWARE, null)
-                    } catch (_: Exception) {
-                        try {
-                            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-                        } catch (_: Exception) {}
-                    }
+                        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+                    } catch (_: Exception) {}
                     settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true
@@ -715,7 +733,7 @@ fun YouTubeEmbeddedPlayer(
                         loadWithOverviewMode = true
                         useWideViewPort = true
                         allowFileAccess = false
-                        cacheMode = WebSettings.LOAD_DEFAULT
+                        cacheMode = WebSettings.LOAD_NO_CACHE
                         mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                     }
                     webChromeClient = WebChromeClient()
