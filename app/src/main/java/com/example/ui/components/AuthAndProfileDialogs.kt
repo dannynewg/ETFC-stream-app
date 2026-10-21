@@ -71,6 +71,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.BuildConfig
 import com.example.data.models.ContentTier
 import com.example.data.models.UserAccount
 import com.example.data.models.UserRole
@@ -608,8 +609,8 @@ fun UserProfileDrawer(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Action Buttons
-            if (onOpenAdminPortal != null) {
+            // Action Buttons (Admin Portal only accessible from Admin App flavor)
+            if (onOpenAdminPortal != null && BuildConfig.IS_ADMIN_APP) {
                 Button(
                     onClick = {
                         onDismiss()

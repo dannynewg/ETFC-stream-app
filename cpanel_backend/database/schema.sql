@@ -196,13 +196,13 @@ CREATE TABLE IF NOT EXISTS `payment_webhooks_log` (
 -- SEED INITIAL DATA (ETFC 003 FIXTURES & ETFC 002 PAST RESULTS)
 -- -----------------------------------------------------------------------------
 INSERT INTO `events` (`id`, `event_code`, `event_name`, `event_edition`, `venue`, `scheduled_at`, `status`, `ppv_price_etb`, `hls_master_url`)
-VALUES 
+VALUES
 (1, 'ETFC_002', 'ETFC 002: Adwa Fight Night', 'ETFC 002', 'Adwa 00 Museum, Addis Ababa', '2026-08-27 20:00:00', 'COMPLETED', 600.00, 'https://etfcstream.rf.gd/hls/etfc002_master.m3u8'),
 (2, 'ETFC_003', 'ETFC 003: Champions Collide', 'ETFC 003', 'Adwa 00 Museum Arena, Addis Ababa', '2026-11-28 20:00:00', 'UPCOMING', 600.00, 'https://etfcstream.rf.gd/hls/etfc003_master.m3u8')
 ON DUPLICATE KEY UPDATE `event_name`=VALUES(`event_name`);
 
 INSERT INTO `live_stream_control` (`event_id`, `is_live_broadcast_active`, `stream_health`, `pinned_announcement`)
-VALUES 
+VALUES
 (2, 0, 'EXCELLENT', 'ETFC 003 Live broadcast scheduled for November 28, 2026 at Adwa 00 Museum Arena.')
 ON DUPLICATE KEY UPDATE `pinned_announcement`=VALUES(`pinned_announcement`);
 

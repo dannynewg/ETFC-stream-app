@@ -152,7 +152,10 @@ fun Etfc003LiveCountdownStripBanner(
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = EtfcSurface),
-        border = BorderStroke(1.2.dp, if (isPassUnlocked) EtfcSuccess else EtfcBorderGold),
+        border = BorderStroke(1.dp, Brush.horizontalGradient(
+            colors = if (isPassUnlocked) listOf(EtfcSuccess, EtfcSuccess.copy(alpha = 0.15f))
+                     else listOf(EtfcGold, EtfcGold.copy(alpha = 0.15f))
+        )),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
@@ -804,7 +807,7 @@ fun MatchPromoPosterHeroCard(
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = EtfcCard),
-        border = BorderStroke(1.5.dp, EtfcGold),
+        border = BorderStroke(1.dp, EtfcGold.copy(alpha = 0.3f)),
         modifier = modifier
             .fillMaxSize()
             .testTag("match_promo_poster_${slide.id}")
@@ -1103,7 +1106,7 @@ fun MatchPromoPosterHeroCard(
                             OutlinedButton(
                                 onClick = onSecondaryCta,
                                 shape = RoundedCornerShape(8.dp),
-                                border = BorderStroke(1.dp, EtfcBorderGold),
+                                border = BorderStroke(1.dp, EtfcBorderGold.copy(alpha = 0.5f)),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = EtfcGold
                                 ),

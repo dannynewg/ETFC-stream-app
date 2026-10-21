@@ -2,7 +2,8 @@ package com.example.data.models
 
 enum class WeightClass(val label: String, val limitLbs: Int) {
     HEAVYWEIGHT("Heavyweight", 265),
-    CRUISERWEIGHT("Cruiserweight", 205),
+    LIGHT_HEAVYWEIGHT("Light Heavyweight", 205),
+    CRUISERWEIGHT("Cruiserweight", 200),
     MIDDLEWEIGHT("Middleweight", 185),
     WELTERWEIGHT("Welterweight", 170),
     LIGHTWEIGHT("Lightweight", 155),

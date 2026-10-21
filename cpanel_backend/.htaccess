@@ -4,22 +4,14 @@
 
 RewriteEngine On
 
-# Allow CORS for Android App & Web Clients
-<IfModule mod_headers.c>
-    Header always set Access-Control-Allow-Origin "*"
-    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-ETFC-Api-Key"
-</IfModule>
-
-# Handle Options preflight requests
-RewriteCond %{REQUEST_METHOD} OPTIONS
-RewriteRule ^(.*)$ $1 [R=200,L]
+# PHP applies the configured origin and handles preflight requests.
+# This baseline is not a complete hosting/vhost deployment configuration.
+RewriteRule ^(?:config|database)(?:/|$) - [F,L]
 
 # Prevent directory browsing
 Options -Indexes
 
 # Protect sensitive files and folders
 <FilesMatch "(^\.env|\.sql|\.json|\.log|config\.php)$">
-    Order allow,deny
-    Deny from all
+    Require all denied
 </FilesMatch>

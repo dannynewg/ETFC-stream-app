@@ -1,378 +1,242 @@
-# ETFC Stream — Ethiopian Top Fight Championship Android Ecosystem
+# ETFC Stream
 
-[![Android](https://img.shields.io/badge/Platform-Android-3DDC84.svg?style=flat&logo=android)](https://developer.android.com)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.0.0-7F52FF.svg?style=flat&logo=kotlin)](https://kotlinlang.org)
-[![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20M3-4285F4.svg?style=flat&logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
-[![Room](https://img.shields.io/badge/Database-Room%202.6.1-FF8F00.svg?style=flat&logo=sqlite)](https://developer.android.com/training/data-storage/room)
-[![Retrofit](https://img.shields.io/badge/Networking-Retrofit%20%2B%20Moshi-009688.svg?style=flat)](https://square.github.io/retrofit/)
-[![Coil](https://img.shields.io/badge/Image%20Loader-Coil%203.0-1E88E5.svg?style=flat)](https://coil-kt.github.io/coil/)
+An Android fan experience and promoter workspace for the **Ethiopian Top Fight Championship**: discover fight cards, browse athletes, watch YouTube replays, manage event content, and explore a pay-per-view arena experience.
 
----
+**Status:** development prototype, prepared for GitHub source migration on **21 October 2026**. The repository includes substantial UI and data infrastructure, alongside simulated commerce, live broadcast, and download flows. It is not a production payment or broadcast service. See [implementation status](#implementation-status) and the [roadmap](docs/ROADMAP.md) before planning a release.
 
-## 1. Overview
+## Contents
 
-**ETFC Stream** is a broadcast-grade, high-concurrency live MMA streaming and fight-management Android application built for the **Ethiopian Top Fight Championship (ETFC)**.
+- [App experience](#app-experience)
+- [Implementation status](#implementation-status)
+- [System architecture](#system-architecture)
+- [Technology and build variants](#technology-and-build-variants)
+- [Repository layout](#repository-layout)
+- [Quick start](#quick-start)
+- [Configuration and credentials](#configuration-and-credentials)
+- [Build, test and CI](#build-test-and-ci)
+- [Backend services](#backend-services)
+- [Content management](#content-management)
+- [Progress tracking](#progress-tracking)
+- [Documentation](#documentation)
+- [Contributing and ownership](#contributing-and-ownership)
 
-Designed with a modern, high-contrast dark aesthetic and Material Design 3 (M3) architecture, the application delivers a premier digital fight night experience across East Africa and international combat sports audiences.
+## App experience
 
-### Key Capabilities
-- **Adaptive Bitrate (ABR) Live Video Player & In-App YouTube Engine**: Low-latency multi-bitrate live video playback with picture-in-picture (PiP), multi-angle camera switching, and native YouTube player integration with oEmbed dynamic metadata fetching.
-- **Dynamic Featured Fight Poster Slider**: Horizontally scrolling carousel with edge-peeking cards, Coil image caching, championship belt indicators, and real-time live event countdowns.
-- **Live Community Chat & Moderation Desk**: High-throughput live discussion stream featuring user mentions (`@user`), sentiment badges, real-time message filtering, and an Admin moderation suite (pin, mute, ban, slow mode).
-- **Tale of the Tape & Fighter Meta-Engine**: Detailed fighter statistics, radar comparison charts, reach/height metrics, strike accuracy, and division rankings across 8 weight classes.
-- **Ethiopian Mobile Payment Suite & PPV Ticketing**: Seamless integration with local payment rails (**Telebirr**, **M-Pesa**, **CBE Birr**, and **Chapa**) with cryptographic digital ticket QR codes and offline access pass verification.
-- **Role-Based Access Control (RBAC) & Screen Security**: Granular user privilege enforcement (Free Fan, PPV Pass Holder, VIP Member, Ring Official, Super Admin) paired with dynamic screenshot and screen-recording prevention (`FLAG_SECURE`).
-- **Offline Engine & Remote CMS Synchronization**: Offline-first caching powered by Room Database with real-time remote configuration updates from GitHub Raw JSON endpoints.
+The fan app uses a dark Material 3 interface with gold accents, red and blue fighter corners, featured event banners, and fight posters. Its primary navigation is Home, Live Arena, Fight Card, PPV Passes, Fighters, and Settings.
 
----
+| Area | What the source provides |
+| --- | --- |
+| Home | Featured posters, event information, news, and a previous-fight video vault |
+| Fight cards | Upcoming and past bouts, fighter comparison, local predictions and favorites |
+| Fighters | Division browsing, profiles, seeded stats, fight history and tale-of-the-tape views |
+| Replays | WebView-backed YouTube embeds, playlist support, URL parsing, thumbnails and oEmbed metadata |
+| Live arena | Broadcast interface, quality/camera controls, stats, chat and moderation components |
+| PPV passes | Provider selection, purchase dialog, pass wallet and local entitlement state |
+| Account | Firebase email/password and Google credential flows, profile screens and reset requests |
+| Promoter workspace | Content editors, fighter and match management, announcements, image picking, team and athlete registration screens |
 
-## 2. System Architecture
+The `admin` flavor is branded **ETFC Promoter CRM**. A separate application ID allows it to coexist with the fan app. Flavor selection controls UI behavior; it does not confer server privileges.
 
-The project follows standard Android **Clean Architecture** and **MVVM (Model-View-ViewModel)** design patterns:
+## Implementation status
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         Presentation Layer (UI)                         │
-│   Jetpack Compose M3  •  Navigation Compose  •  Custom Canvas Overlays   │
-│   (HomeScreen, LiveStreamScreen, FightCardScreen, FightersScreen, etc.)   │
-└────────────────────────────────────┬─────────────────────────────────────┘
-                                     │ StateFlow / Events
-┌────────────────────────────────────▼─────────────────────────────────────┐
-│                             ViewModel Layer                              │
-│         EtfcViewModel (Single Source of State & Lifecycle Scope)         │
-└────────────────────────────────────┬─────────────────────────────────────┘
-                                     │ Suspend Functions / Flow Streams
-┌────────────────────────────────────▼─────────────────────────────────────┐
-│                            Repository Layer                              │
-│                            EtfcRepository                                │
-└───────────────────────┬───────────────────────────┬──────────────────────┘
-                        │                           │
-          ┌─────────────▼─────────────┐     ┌───────▼────────────────┐
-          │     Local Data Layer      │     │   Remote Data Layer    │
-          │   Room Database (v5)      │     │ Retrofit2 + Moshi      │
-          │  • Fighters               │     │  • YouTube oEmbed API  │
-          │  • Matches                │     │  • GitHub Raw Admin API│
-          │  • Announcements          │     │  • OkHttp3 Interceptor │
-          │  • Hero Slides            │     └────────────────────────┘
-          │  • Video Vault            │
-          │  • Chat & Moderation Logs │
-          │  • User Accounts & RBAC   │
-          └───────────────────────────┘
-```
+"Implemented" below means source exists; it does not imply a completed device acceptance test or a deployed service.
 
-### Architectural Highlights
-- **Single-Activity Architecture**: The application runs within `MainActivity.kt`, using `Scaffold`, `NavigationBar`, and animated Jetpack Compose screen composables.
-- **Reactive State Flow**: The UI subscribes to immutable `StateFlow` streams from `EtfcViewModel`. State emissions automatically trigger optimized Compose recompositions.
-- **Offline-First Persistence**: All fight data, fighter profiles, video metadata, and announcements are backed by Room SQLite tables, allowing full offline operation without a network connection.
-- **Multi-Source Ingestion**: Network payloads from YouTube and GitHub Raw JSON endpoints are sanitized, parsed through Moshi adapters, mapped to domain entities, and persisted into Room.
+| Capability | State | Practical limit |
+| --- | --- | --- |
+| Compose screens and navigation | Implemented | Manual tab routing in one activity; no Navigation Compose graph |
+| Room persistence | Implemented | Database v5, 17 entity types; destructive migration fallback |
+| Firebase authentication | Implemented | Requires a configured Firebase project and providers |
+| Firestore content synchronization | Implemented with integration gaps | Listeners and writes exist; identity and security contracts need alignment |
+| YouTube replay playback | Implemented | Uses embeds; internet and YouTube availability are required |
+| Athlete registration | UI and Firestore adapter | Collection authorization and privacy policy remain to be designed |
+| Live HLS/ABR/multiple cameras | Prototype | Player controls and telemetry are UI state, not a verified streaming pipeline |
+| PPV checkout | Simulation / backend scaffolding | Android grants local passes after a delay; provider checkout initialization is incomplete |
+| Payment webhooks | Disabled safely | Return HTTP 503 until authenticated provider verification exists |
+| Offline encrypted video | Simulation | Download progress and file paths are simulated; no verified media download/encryption engine |
+| RBAC | UI plus restrictive rules baseline | Server claims are authoritative; client email checks still need replacement |
+| Push notifications | Partial | Match-update function exists; Android topic subscription/receipt is not wired end to end |
+| Tests | Limited | RBAC/resource tests, package smoke test, PHP security smoke tests and CI configuration |
 
----
+Seeded news, event dates, venues, fighter stats, prices, crowd counts and network metrics are demonstration content. Confirm them independently before publishing an event or charging a customer.
 
-## 3. Directory Structure
+## System architecture
 
-```
-/
-├── app/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/example/
-│   │   │   │   ├── data/
-│   │   │   │   │   ├── local/
-│   │   │   │   │   │   ├── EtfcDatabase.kt       # Room database definition (v5)
-│   │   │   │   │   │   ├── EtfcEntities.kt       # Entity models for Room tables
-│   │   │   │   │   │   └── EtfcDao.kt            # Coroutine & Flow DAO queries
-│   │   │   │   │   ├── models/
-│   │   │   │   │   │   ├── Models.kt             # Domain models (Bout, Fighter, WeightClass)
-│   │   │   │   │   │   ├── HomeModels.kt         # HeroSlide, PreviousFightVideo, NewsArticle
-│   │   │   │   │   │   ├── AuthModels.kt         # UserAccount, UserRole, PermissionMatrix
-│   │   │   │   │   │   └── FighterMetaModels.kt  # Tale of the tape & radar chart models
-│   │   │   │   │   ├── remote/
-│   │   │   │   │   │   ├── NetworkClient.kt      # Retrofit & OkHttp singleton configuration
-│   │   │   │   │   │   ├── YouTubeOEmbedApi.kt   # YouTube oEmbed REST contract & DTOs
-│   │   │   │   │   │   ├── YouTubeDataMapper.kt  # URL extraction & thumbnail ladder generator
-│   │   │   │   │   │   └── GitHubRawApiService.kt# GitHub Raw content fetcher
-│   │   │   │   │   ├── repository/
-│   │   │   │   │   │   └── EtfcRepository.kt     # Unified data repository & sync logic
-│   │   │   │   │   └── security/
-│   │   │   │   │       └── SecurityManager.kt    # RBAC rules, cryptographic hashing, audit logs
-│   │   │   │   ├── ui/
-│   │   │   │   │   ├── components/
-│   │   │   │   │   │   ├── FeaturedFightPosterSlider.kt # Coil-powered horizontal poster carousel
-│   │   │   │   │   │   ├── HeroSection.kt        # Multi-tab hero banners & video vault cards
-│   │   │   │   │   │   ├── VideoPlayerView.kt    # ABR video player with HUD controls
-│   │   │   │   │   │   ├── YouTubeInAppPlayerView.kt # WebView-backed in-app YouTube player
-│   │   │   │   │   │   ├── LiveChatComponents.kt # Real-time chat, mentions, moderation desk
-│   │   │   │   │   │   ├── TaleOfTheTapeView.kt  # Head-to-head fighter stat comparison
-│   │   │   │   │   │   ├── PaymentDialog.kt      # Telebirr, M-Pesa, CBE Birr payment checkout
-│   │   │   │   │   │   ├── AdminPortalDialog.kt  # GitHub JSON sync & live content editor
-│   │   │   │   │   │   ├── RbacPaywallOverlay.kt # Tier-based stream access restriction view
-│   │   │   │   │   │   ├── SecureScreenEffect.kt # Dynamic FLAG_SECURE window enforcer
-│   │   │   │   │   │   └── OfflinePlaybackDialog.kt # Offline video download & playback modal
-│   │   │   │   │   ├── screens/
-│   │   │   │   │   │   ├── HomeScreen.kt         # Featured matches, news, vault, countdown
-│   │   │   │   │   │   ├── LiveStreamScreen.kt   # Live PPV broadcast, multi-camera, live chat
-│   │   │   │   │   │   ├── FightCardScreen.kt    # Main card, prelims, voting predictions
-│   │   │   │   │   │   ├── FightersScreen.kt     # Division rosters, search, profile details
-│   │   │   │   │   │   ├── TicketsPpvScreen.kt   # Digital pass purchase, QR ticket wallet
-│   │   │   │   │   │   ├── SettingsScreen.kt     # Profile, stream quality, audio commentary
-│   │   │   │   │   │   └── AdminPanelScreen.kt   # Full-featured CMS: fighters, match cards, local image picker, and DB lifecycle
-│   │   │   │   │   ├── theme/
-│   │   │   │   │   │   ├── Color.kt              # ETFC Gold, Red Corner, Blue Corner, Obsidian
-│   │   │   │   │   │   ├── Theme.kt              # Material 3 dark color scheme & typography
-│   │   │   │   │   │   └── Type.kt               # Display and Body typography configurations
-│   │   │   │   │   └── viewmodel/
-│   │   │   │   │       └── EtfcViewModel.kt      # Central app ViewModel & reactive state
-│   │   │   │   └── MainActivity.kt               # Main entry point, navigation host
-│   │   │   ├── res/
-│   │   │   │   ├── values/strings.xml            # Application string resources
-│   │   │   │   └── mipmap-*/                     # Adaptive launcher icons
-│   │   │   └── AndroidManifest.xml               # Permissions and activity registration
-│   │   └── test/
-│   │       └── java/com/example/ExampleRobolectricTest.kt # Robolectric unit & integration tests
-│   └── build.gradle.kts                          # App-level dependencies and plugins
-├── gradle/
-│   └── libs.versions.toml                        # Centralized dependency catalog
-├── settings.gradle.kts                           # Plugin repositories & project name
-├── metadata.json                                 # AI Studio platform identification
-└── README.md                                     # Project documentation
+```mermaid
+flowchart TD
+    Fan[Fan Android flavor] --> UI[Compose screens and components]
+    CRM[Promoter Android flavor] --> UI
+    UI --> VM[EtfcViewModel / StateFlow]
+    VM --> Repo[EtfcRepository]
+    VM --> Auth[AuthenticationRepository]
+    Repo <--> Room[(Room / SQLite v5)]
+    Repo <--> Sync[FirebaseSyncManager / UserDataManager]
+    Auth --> FA[Firebase Authentication]
+    Sync <--> FS[(Cloud Firestore)]
+    Repo --> Raw[GitHub Raw JSON / remote content]
+    Repo --> YT[YouTube oEmbed]
+    UI --> Embed[YouTube WebView player]
+    Worker[DataConsistencyWorker] --> Room
+    Functions[Firebase Cloud Functions] --> FS
+    Functions --> FCM[Firebase Cloud Messaging]
+    PHP[PHP portal and API prototype] <--> SQL[(MySQL)]
+    PHP -. incomplete authenticated bridge .-> FS
+    PHP -. incomplete bridge .-> RTDB[(Firebase Realtime Database)]
 ```
 
----
+The Android app is an MVVM-style single-module application. `MainActivity` creates the Compose shell. `EtfcViewModel` owns screen state and constructs repositories and sync services. Room stores local content and user-facing state; Firestore adapters synchronize selected collections. Retrofit/OkHttp retrieve remote content and YouTube metadata. WorkManager repairs references between fighter records and related content.
 
-## 4. Prerequisites & Environment Setup
+This is not a fully separated Clean Architecture implementation: the ViewModel and repository contain significant orchestration, seeded content, and platform dependencies. PHP/MySQL is a parallel backend prototype; the Android app does not currently use its PPV endpoints as its payment authority. [Detailed architecture and trust boundaries](docs/ARCHITECTURE.md).
 
-- **Android Studio**: Ladybug (2024.2.1+) or newer.
-- **Java Development Kit (JDK)**: JDK 17 or JDK 21.
-- **Android SDK Platform**: API Level 36 (Minimum SDK: 24 / Android 7.0 Nougat).
-- **Build System**: Gradle 8.9+ (Kotlin DSL).
+## Technology and build variants
 
----
+Versions below come from the checked-in configuration. The [version catalog](gradle/libs.versions.toml) is the source of truth.
 
-## 5. Compiling, Building, and Running
+| Component | Configuration |
+| --- | --- |
+| Language / UI | Kotlin 2.2.10, Jetpack Compose, Material 3 |
+| Android Gradle plugin / wrapper | AGP 9.4.0 / Gradle 9.6.0 |
+| Android | Minimum API 24; target API 36; compile API 36.1 |
+| App release metadata | `versionName=1.0.002`, `versionCode=2` |
+| Local database | Room 2.7.0, schema version 5 |
+| Network / images | Retrofit 2.12.0, Moshi 1.15.2, OkHttp 4.10.0, Coil 2.7.0 |
+| Firebase | BOM 34.17.0, Authentication, Firestore, Storage and App Check dependencies |
+| Background work | WorkManager 2.10.0 |
+| Functions | TypeScript, Firebase Functions v1 API, Node 20 runtime declaration |
+| Web backend | PHP, PDO MySQL and cURL; MySQL schema included |
 
-### 5.1 Build System Commands
+| Flavor | Application ID | App label |
+| --- | --- | --- |
+| `user` | `com.aistudio.etfcstream.vfkqw` | ETFC Stream |
+| `admin` | `com.aistudio.etfcstream.admin` | ETFC Promoter CRM |
 
-> **Note**: In this environment, use `gradle` directly without `./gradlew`.
+The source namespace remains `com.example`; changing it is a separate refactor. Debug builds use the Android tooling's generated debug key. Release signing is supplied through environment variables and is never committed.
 
-#### Check Compilation
+## Repository layout
+
+```text
+app/
+  build.gradle.kts                 Android variants, signing and dependencies
+  google-services.example.json    Synthetic build-only Firebase configuration
+  src/main/java/com/example/
+    MainActivity.kt               App shell, navigation and image loader
+    data/local/                   Room database, DAO and entities
+    data/models/                  Auth, bout, fighter, content and athlete models
+    data/remote/                  Firebase, HTTP, YouTube and JSON adapters
+    data/repository/              Content, account and local feature operations
+    data/security/                Legacy local hash/token helpers
+    ui/components/                Player, posters, forms, dialogs and guards
+    ui/screens/                   Fan and promoter screens
+    ui/theme/                     Colors, typography and Material theme
+    ui/viewmodel/                 StateFlow app state and actions
+    notifications/               Android notification helper
+    util/                        Local image storage and consistency worker
+  src/main/res/                   Required images, icons and Android resources
+  src/user/, src/admin/           Flavor resources
+  src/test/, src/androidTest/     Focused local and instrumentation tests
+cpanel_backend/                   PHP portal, API, config and SQL schema
+functions/                        Firebase TypeScript functions and lockfile
+gradle/                           Version catalog and checked-in Gradle wrapper
+docs/                             Architecture, setup, API, review and roadmap
+tests/php/                        Backend security smoke tests
+.github/                          CI, issue templates and PR template
+firebase.json                     Firebase deployment component configuration
+firestore.rules                   Firestore authorization baseline
+firestore.indexes.json            Empty explicit index baseline
+storage.rules                     Deny-all Storage baseline
+```
+
+## Quick start
+
+1. Clone this repository and open the root directory in Android Studio.
+2. Configure JDK 21 and install Android SDK platform 36.1 plus Build Tools 36.0.0. The Java source/target setting of 11 in the app is distinct from the JDK used to run Gradle.
+3. Let Android Studio create `local.properties` pointing at your SDK.
+4. Register both application IDs in your own Firebase project. Download the Android configuration to `app/google-services.json`. Enable the authentication providers you intend to use and register your local debug certificate fingerprints for Google sign-in.
+5. For compilation only, you can copy `app/google-services.example.json` to `app/google-services.json`. Its synthetic values do not connect to a working Firebase project, and it is not a functional offline/demo mode.
+6. Select `userDebug` or `adminDebug` in Build Variants and build/run.
+
+```powershell
+# Windows, from the repository root
+.\gradlew.bat :app:assembleUserDebug :app:assembleAdminDebug
+```
+
 ```bash
-gradle :app:compileDebugKotlin
+# macOS / Linux
+./gradlew :app:assembleUserDebug :app:assembleAdminDebug
 ```
 
-#### Build Debug APK
-```bash
-gradle :app:assembleDebug
-```
-The output APK will be located at:
-`app/build/outputs/apk/debug/app-debug.apk`
+APKs appear under `app/build/outputs/apk/user/debug/` and `app/build/outputs/apk/admin/debug/`. The wrapper pins its distribution checksum. No globally installed Gradle is needed. [Full development setup](docs/SETUP.md).
 
-#### Build Release APK
-```bash
-gradle :app:assembleRelease
-```
-The output APK will be located at:
-`app/build/outputs/apk/release/app-release-unsigned.apk` (or signed if credentials are provided).
+## Configuration and credentials
 
-#### Run Unit & Robolectric Tests
-```bash
-gradle :app:testDebugUnitTest
-```
+- `app/google-services.json`, `.env`, `local.properties`, signing keys, service accounts, editor state, generated builds and dependencies are ignored.
+- Android Firebase configuration is client configuration; this repository deliberately supplies only synthetic example values.
+- PHP settings come from process environment variables documented in `cpanel_backend/.env.example`. Copying that file alone does not load it into PHP.
+- Release signing uses `KEYSTORE_PATH`, `STORE_PASSWORD`, and `KEY_PASSWORD`; the configured key alias is `upload`.
+- API secrets, database passwords, payment signing keys and service-account credentials must remain server-side. BuildConfig values and APK contents are readable by app users.
+- Historical embedded credentials were removed during migration. Rotate the old database password and signing/webhook secrets before reusing the original hosted environment. See [security guidance](SECURITY.md).
 
-#### Verify Roborazzi Screenshot Tests
-```bash
-gradle :app:verifyRoborazziDebug
-```
+## Build, test and CI
 
----
+```powershell
+.\gradlew.bat :app:testUserDebugUnitTest :app:testAdminDebugUnitTest
+.\gradlew.bat :app:lintUserDebug :app:lintAdminDebug
+# With an emulator/device connected:
+.\gradlew.bat :app:connectedUserDebugAndroidTest
 
-## 6. Operating the App
-
-### 6.1 User Roles & RBAC Switching
-The application includes a built-in role switcher for rapid testing and demonstration of access levels:
-1. Tap the **Profile / Role Badge** in the top bar.
-2. Select any role to instantly preview the application under that persona:
-   - **Free Fan**: Standard access to free preliminary bouts, basic chat, and public news.
-   - **PPV Pass Holder**: Unlocks the 1080p Main Event PPV stream and exclusive camera angles.
-   - **VIP Ringside Member**: Unlocks 4K ultra-low latency streaming, backstage locker room cameras, VIP gold chat badge, and digital fight night pass.
-   - **Ring Official**: Grants access to live judge scorecard submissions and corner telemetry.
-   - **Super Admin**: Unlocks the **Admin Portal** for real-time chat moderation and GitHub Remote JSON synchronization.
-
-### 6.2 Mobile Payment & PPV Ticketing (Telebirr / M-Pesa)
-1. Navigate to the **PPV Passes** tab.
-2. Choose your ticket tier (*Early Bird*, *Main Card Standard*, *VIP Ringside*).
-3. Select your preferred payment method: **Telebirr**, **M-Pesa**, **CBE Birr**, or **Chapa**.
-4. Enter your mobile number and tap **Confirm & Pay**.
-5. Once processed, an encrypted QR ticket is generated and stored in your local wallet for offline gate verification.
-
-### 6.3 Admin CMS Portal & Full Database Lifecycle Management
-The application features a dedicated **Admin Panel & Content Management System (`AdminPanelScreen.kt`)** providing full lifecycle CRUD management (Create, Read, Update, Delete) across all core combat entities:
-
-1. **Accessing the CMS**:
-   - Tap the **Settings** tab -> **Open Admin Portal**, or tap the top bar **Shield / Admin Badge** when logged in with the Admin persona.
-2. **Athlete Roster Management (`🥊 Fighters` Tab)**:
-   - **Local File Image Picker**: Upload high-resolution athlete profile photos directly from the device's local photo gallery or file storage using the Android system `ActivityResultContracts.GetContent()` picker (no external URLs required).
-   - **Profile Customization**: Edit fighter full name, alias/nickname, nationality & flag emoji, weight division (Flyweight through Heavyweight), fighting stance (Orthodox/Southpaw/Switch), reach (inches), height (cm), comprehensive record (Wins, Losses, Draws, KOs, Submissions), signature techniques, and championship status.
-   - **Cross-Screen Reactive Propagation**: Changes made to any fighter profile immediately and automatically synchronize across the entire application—including the **Home Screen Hero Slider**, **Fight Card Bout Lineups**, **Tale of the Tape Head-to-Head Compare Screen**, **Live Arena Stream HUD**, and **Fighter Roster Directory**—powered by reactive Room database flows.
-3. **Fight Card & Bout Scheduling (`⚔️ Match Cards` Tab)**:
-   - Schedule new bouts by selecting Red and Blue corner combatants directly from the dynamic fighter database.
-   - Configure bout type (*Main Event*, *Co-Main Event*, *Featured Main Card*, *Prelims*), title championship stakes, scheduled rounds (3 or 5), arena venue, and broadcast time.
-   - Upload custom fight night promotional poster images via local file picker.
-   - Live result declaration: declare bout winners (Red Corner, Blue Corner, Draw/No Contest) and official stoppage method (*KO/TKO*, *Submission*, *Unanimous Decision*, *Split Decision*).
-4. **Hero Banners, Archive Videos & Press Releases**:
-   - Manage sliding hero banners on the Home Screen with custom promo artwork.
-   - Ingest YouTube fight replays and highlight clips with automatic oEmbed metadata resolution.
-   - Publish official news releases, press statements, and weigh-in announcements with local banner images.
-5. **GitHub Repository Sync & JSON Engine**:
-   - **Export Database to JSON**: Export the complete SQLite database state into a portable, version-controlled JSON schema.
-   - **Import & Remote Ingestion**: Parse and upsert remote or local JSON payloads directly into Room tables with zero downtime.
-
----
-
-## 7. Configuration & Remote JSON Schema
-
-To update the app remotely via GitHub, host a JSON file structured according to the following schema:
-
-```json
-{
-  "heroSlides": [
-    {
-      "id": "slide_adwa_002",
-      "title": "ETFC 002: Battle of Adwa",
-      "subtitle": "Historic Lightweight World Championship",
-      "tag": "LIVE PPV",
-      "badgeColorHex": 4025230404,
-      "eventEdition": "ETFC 002",
-      "eventDateOrCountdown": "October 24, 2026",
-      "venueOrLocation": "Adwa 00 Museum Arena, Addis Ababa",
-      "primaryCtaText": "Watch Live",
-      "secondaryCtaText": "Order PPV",
-      "posterImageUrl": "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=1200",
-      "redFighterName": "Sedo",
-      "blueFighterName": "Jhonny",
-      "redFlag": "🇪🇹",
-      "blueFlag": "🇪🇹",
-      "hasChampionshipBelt": true,
-      "weightClassText": "Lightweight (70 kg)"
-    }
-  ],
-  "vaultVideos": [
-    {
-      "id": "vault_01",
-      "title": "ETFC 001: Main Event Full Replay",
-      "subtitle": "Sedo vs Desalegn - Spectacular KO Round 2",
-      "eventName": "ETFC 001: Genesis",
-      "category": "FULL_REPLAY",
-      "durationText": "18:42",
-      "youtubeVideoId": "0a8G81bZ7X0",
-      "contentTier": "FREE_PRELIMS"
-    }
-  ],
-  "newsArticles": [
-    {
-      "id": "news_adwa_tickets",
-      "title": "Adwa 00 Museum Arena Confirmed for ETFC 002",
-      "summary": "Over 8,000 live tickets will go on sale across Telebirr and CBE Birr.",
-      "category": "PRESS_RELEASE",
-      "author": "ETFC Media Desk",
-      "publishedDate": "August 30, 2026",
-      "isFeatured": true
-    }
-  ]
-}
+Set-Location functions
+npm ci
+npm run lint
+npm run build
+Set-Location ..
+php tests/php/security_smoke.php
 ```
 
----
+On macOS/Linux replace `.\gradlew.bat` with `./gradlew`. PHP syntax validation is run for every `.php` file in CI. The security smoke test verifies callbacks refuse payment grants and configuration has no default privileged credentials.
 
-## 8. How to Extend and Implement New Features
+[GitHub Actions](.github/workflows/ci.yml) runs Android builds, focused unit tests and lint for both flavors, plus TypeScript lint/build and PHP syntax/security checks. It uses synthetic Firebase configuration and does not deploy or charge payments. Device tests, Firestore emulator tests, payment sandbox tests, load testing and production acceptance remain separate release gates. Check [review evidence](docs/REVIEW.md) for the actual migration validation results.
 
-### 8.1 Adding a New Remote API Endpoint
-1. Open `app/src/main/java/com/example/data/remote/`.
-2. Define your endpoint interface using Retrofit annotations:
-   ```kotlin
-   interface EtfcPublicApiService {
-       @GET("api/v1/fighters/{id}/stats")
-       suspend fun getFighterStats(@Path("id") fighterId: String): FighterStatsDto
-   }
-   ```
-3. Register the service in `NetworkClient.kt`:
-   ```kotlin
-   val publicApiService: EtfcPublicApiService by lazy {
-       retrofit.create(EtfcPublicApiService::class.java)
-   }
-   ```
-4. Expose the call through `EtfcRepository.kt` and handle offline fallback caching with Room.
+## Backend services
 
-### 8.2 Adding a New Room Table / Entity
-1. Define the `@Entity` class in `EtfcEntities.kt`:
-   ```kotlin
-   @Entity(tableName = "event_sponsors")
-   data class SponsorEntity(
-       @PrimaryKey val id: String,
-       val name: String,
-       val logoUrl: String,
-       val tier: String
-   )
-   ```
-2. Add the corresponding query methods in `EtfcDao.kt`:
-   ```kotlin
-   @Query("SELECT * FROM event_sponsors ORDER BY tier ASC")
-   fun getAllSponsors(): Flow<List<SponsorEntity>>
+### Firebase
 
-   @Insert(onConflict = OnConflictStrategy.REPLACE)
-   suspend fun insertSponsors(sponsors: List<SponsorEntity>)
-   ```
-3. Register the entity and bump the version number in `EtfcDatabase.kt`:
-   ```kotlin
-   @Database(
-       entities = [..., SponsorEntity::class],
-       version = 6,
-       exportSchema = false
-   )
-   abstract class EtfcDatabase : RoomDatabase()
-   ```
+`functions/src/index.ts` exports a match-status notification trigger, an invitation-based admin claim function, and a disabled payment webhook. Configure a separate development Firebase project and use emulators for further backend development. The function runtime declaration is Node 20; confirm deployment runtime availability before deploying.
 
-### 8.3 Creating a New Screen in Jetpack Compose
-1. Create your composable screen file in `app/src/main/java/com/example/ui/screens/`.
-2. Collect state from `EtfcViewModel`:
-   ```kotlin
-   @Composable
-   fun SponsorRosterScreen(
-       viewModel: EtfcViewModel,
-       modifier: Modifier = Modifier
-   ) {
-       val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-       // Implement UI layout with Material 3 components
-   }
-   ```
-3. Add the screen to the navigation destination hierarchy in `MainActivity.kt`.
+The checked-in Firestore rules require an `admin` custom claim for privileged writes. User profiles are scoped to full Firebase UIDs and protected against self-editing roles and entitlements. Storage denies access until a deliberate media policy is implemented. **The existing Android client still uses shortened/prefixed user IDs and email-based role assumptions. Those contracts must be migrated before these rules are deployed to an existing project.** The restrictive baseline intentionally rejects incompatible operations.
 
----
+### PHP / MySQL
 
-## 9. Security & DRM Implementation
+`cpanel_backend` contains a landing page, web admin, event/stream endpoints, PPV order scaffolding and SQL bootstrap data. No database is bundled. Payment callbacks return HTTP 503; order initiation does not yet create real provider checkout sessions. The Firebase REST bridge lacks authenticated server credentials and an agreed identity mapping.
 
-- **`FLAG_SECURE` Protection**: Controlled dynamically via `SecureScreenEffect.kt`. When high-value PPV content is playing or confidential payment credentials are displayed, the window flag `WindowManager.LayoutParams.FLAG_SECURE` is applied to prevent screen capture, screenshotting, or mirroring.
-- **Cryptographic Access Pass Verification**: PPV passes and VIP tickets generate encrypted payload hashes using SHA-256 tokens linked to the user account ID and match ID.
-- **Input Sanitization**: Real-time chat messages and URLs undergo strict regex validation to prevent script injection and malicious link distribution.
+Read [backend setup](docs/BACKEND.md) and [API reference](docs/API.md) for paths, request fields and limitations. This repository migration does not deploy any backend or change a hosted database.
 
----
+## Content management
 
-## 10. Tech Stack & Dependencies
+The promoter UI can edit local and Firestore-backed content, pick images, and import/export `ETFC_CONTENT_SYNC_V1` JSON. The export includes `heroSlides`, `previousVideos`, `newsArticles`, and `fighters`; it is not a backup of accounts, purchases, athlete applications or the full match database. Local `file://` image paths are device-specific and must be replaced by portable URLs for shared content.
 
-| Category | Technology |
-|---|---|
-| **Language** | Kotlin 2.0.0 |
-| **UI Framework** | Jetpack Compose (Material Design 3) |
-| **Architecture** | MVVM + Clean Architecture |
-| **Local Database** | Room SQLite 2.6.1 + KSP |
-| **Networking** | Retrofit 2.11.0 + OkHttp 4.12.0 |
-| **JSON Serialization**| Moshi 1.15.2 (Kotlin Reflect Factory) |
-| **Image Loading** | Coil 3.0.0 (Compose AsyncImage) |
-| **Concurrency** | Kotlin Coroutines & Reactive StateFlow |
-| **Testing** | JUnit 4, Robolectric, Roborazzi Screenshot Suite |
+GitHub Raw JSON import reads a supplied raw content URL. It does not write to GitHub, deploy this app, or make GitHub a trusted payment/account backend. Only publish reviewed public event content in a public content file.
 
----
+## Progress tracking
 
-## 11. License
+The [roadmap](docs/ROADMAP.md) tracks migration, security, streaming, commerce, data consistency and release readiness using task IDs, priorities and acceptance criteria. It separates completed migration work from planned product work.
 
-Copyright © 2026 Ethiopian Top Fight Championship (ETFC). All rights reserved.
-Licensed under the proprietary ETFC Digital Media Distribution license.
+Use the repository issue templates for defects and scoped features. Reference a roadmap ID in each issue/PR, include verification evidence, and update the checklist when acceptance criteria are met. Avoid percentage-complete estimates until scope and device/backend verification are defined.
+
+## Documentation
+
+| Document | Purpose |
+| --- | --- |
+| [Architecture](docs/ARCHITECTURE.md) | Modules, data flows, persistence and trust boundaries |
+| [Setup](docs/SETUP.md) | Android, functions, signing and troubleshooting |
+| [Backend](docs/BACKEND.md) | PHP hosting layout, Firebase setup and deployment gates |
+| [API](docs/API.md) | PHP endpoints, Firebase collections and function contracts |
+| [Roadmap](docs/ROADMAP.md) | Progress checklist and release acceptance criteria |
+| [Review](docs/REVIEW.md) | Findings, cleanup decisions and validation evidence |
+| [Security](SECURITY.md) | Credential handling and reporting |
+| [Contributing](CONTRIBUTING.md) | Change workflow and review expectations |
+| [Changelog](CHANGELOG.md) | Repository preparation and subsequent changes |
+
+## Contributing and ownership
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md), start from `main`, and submit small changes with clear validation. Do not commit credentials, real customer/payment records, signing keys, generated APKs or local build caches.
+
+The existing GitHub repository remains **private** at the owner's instruction. Its current tree is cleaned; historical credential-bearing commits remain private and must be reviewed before changing visibility. No open-source license has been selected by the owner. ETFC branding, fighter photographs, posters and third-party media retain their respective ownership; confirm distribution rights before using them outside this project. Dependencies retain their own licenses.

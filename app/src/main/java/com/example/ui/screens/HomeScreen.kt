@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material.icons.filled.LocalActivity
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Newspaper
@@ -223,7 +224,18 @@ fun HomeScreen(
                     viewModel.openCheckoutDialog(singleTier)
                 },
                 onSettingsClick = { viewModel.selectTab(AppTab.SETTINGS) },
-                onFightersClick = { viewModel.selectTab(AppTab.FIGHTERS) }
+                onFightersClick = { viewModel.selectTab(AppTab.FIGHTERS) },
+                onRegistryClick = { viewModel.openAthleteRegistry(0) }
+            )
+        }
+
+        // =========================================================================
+        // 3.5. ETHIOPIAN COMBAT ATHLETE REGISTRY PROMO BANNER
+        // =========================================================================
+        item(key = "athlete_registry_promo_banner") {
+            com.example.ui.components.AthleteRegistryPromoBanner(
+                onRegisterClick = { viewModel.openAthleteRegistry(0) },
+                onViewRosterClick = { viewModel.openAthleteRegistry(1) }
             )
         }
 
@@ -349,6 +361,7 @@ fun HomeQuickActionHub(
     onVipClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onFightersClick: () -> Unit,
+    onRegistryClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -360,6 +373,16 @@ fun HomeQuickActionHub(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 4.dp)
         ) {
+            item {
+                QuickActionPill(
+                    icon = Icons.Default.HowToReg,
+                    label = "Fighter Registry",
+                    badge = "OPEN",
+                    badgeColor = EtfcGold,
+                    onClick = onRegistryClick,
+                    accentColor = EtfcGold
+                )
+            }
             item {
                 QuickActionPill(
                     icon = Icons.Default.LocalActivity,
@@ -416,7 +439,7 @@ fun QuickActionPill(
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = EtfcCardInner,
-        border = BorderStroke(1.dp, EtfcBorder),
+        border = BorderStroke(1.dp, EtfcBorderSubtle),
         modifier = Modifier
             .height(42.dp)
             .clickable { onClick() }
@@ -536,8 +559,9 @@ fun PreviousVideoListItem(
                     if (!video.youtubeVideoId.isNullOrBlank()) "https://img.youtube.com/vi/${video.youtubeVideoId}/hqdefault.jpg" else ""
                 }
                 if (thumb.isNotBlank()) {
+                    val resolvedThumb = com.example.ui.util.ImageResolver.resolve(thumb)
                     AsyncImage(
-                        model = thumb,
+                        model = resolvedThumb,
                         contentDescription = video.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

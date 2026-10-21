@@ -14,7 +14,7 @@ try {
     $db = Database::getConnection();
 
     $stmt = $db->query("
-        SELECT 
+        SELECT
             lsc.*,
             e.event_name,
             e.event_code,

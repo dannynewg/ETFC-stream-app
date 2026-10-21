@@ -1,0 +1,59 @@
+name: Verify project
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node tools/check-repository.mjs
+  functions:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, curl
+      - run: find cpanel_backend -name '*.php' -print0 | xargs -0 -n1 php -l
+      - run: php tests/php/security_smoke.php
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-36.1' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Use non-production Firebase configuration
+        run: cp app/google-services.example.json app/google-services.json
+      - name: Build both flavors and run focused unit tests
+        run: >-
+          ./gradlew :app:assembleUserDebug :app:assembleAdminDebug
+          :app:testUserDebugUnitTest :app:testAdminDebugUnitTest
+          :app:lintUserDebug :app:lintAdminDebug --stacktrace

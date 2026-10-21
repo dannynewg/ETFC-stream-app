@@ -43,7 +43,7 @@ try {
         .text-gold { color: var(--etfc-gold); }
         .bg-gold { background-color: var(--etfc-gold); color: #000; }
         .border-gold { border-color: var(--etfc-gold) !important; }
-        
+
         .hero-banner {
             background: linear-gradient(180deg, rgba(20, 21, 27, 0.4) 0%, rgba(10, 10, 12, 1) 100%),
                         url('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1600&auto=format&fit=crop') center/cover no-repeat;
@@ -229,7 +229,7 @@ try {
                 </div>
                 <div class="modal-body p-4">
                     <p class="text-secondary small mb-3">Unlock full live high-definition HLS stream access, live arena chat, and multi-camera replay across your mobile app and web browser.</p>
-                    
+
                     <form id="ppvForm">
                         <div class="mb-3">
                             <label class="form-label text-secondary small fw-bold">Phone Number (Telebirr / CBE)</label>

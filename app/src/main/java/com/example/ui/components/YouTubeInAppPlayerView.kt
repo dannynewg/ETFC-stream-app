@@ -542,6 +542,20 @@ fun YouTubeInAppPlayerDialog(
                                     .background(Color.Black),
                                 contentAlignment = Alignment.Center
                             ) {
+                                val thumb = itemVideo.thumbnailUrl.ifBlank {
+                                    if (!itemVideo.youtubeVideoId.isNullOrBlank()) "https://img.youtube.com/vi/${itemVideo.youtubeVideoId}/hqdefault.jpg" else ""
+                                }
+                                if (thumb.isNotBlank()) {
+                                    val resolvedThumb = com.example.ui.util.ImageResolver.resolve(thumb)
+                                    coil.compose.AsyncImage(
+                                        model = resolvedThumb,
+                                        contentDescription = itemVideo.title,
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+                                }
+
                                 Icon(
                                     imageVector = if (isCurrent) Icons.Default.SmartDisplay else Icons.Default.PlayArrow,
                                     contentDescription = null,
@@ -649,10 +663,10 @@ fun YouTubeEmbeddedPlayer(
         </head>
         <body>
             <div class="video-container">
-                <iframe 
-                    src="$embedUrl" 
+                <iframe
+                    src="$embedUrl"
                     title="ETFC Match Video"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowfullscreen>
                 </iframe>
             </div>
@@ -724,7 +738,7 @@ fun YouTubeEmbeddedPlayer(
                     setBackgroundColor(0xFF07090E.toInt())
                     // Set layer type to NONE/SOFTWARE to avoid MESA GPU rendernode crashes in virtualized environments
                     try {
-                        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+                        setLayerType(View.LAYER_TYPE_HARDWARE, null)
                     } catch (_: Exception) {}
                     settings.apply {
                         javaScriptEnabled = true

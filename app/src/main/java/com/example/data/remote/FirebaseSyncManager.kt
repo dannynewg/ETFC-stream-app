@@ -17,8 +17,10 @@ import com.example.data.models.Fighter
 import com.example.data.models.HeroSlide
 import com.example.data.models.NewsArticle
 import com.example.data.models.PreviousFightVideo
+import com.example.data.models.RegisteredAthlete
 import com.example.data.models.UserAccount
 import com.example.data.models.UserRole
+import com.example.data.models.defaultEthiopianAthletes
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -49,6 +51,7 @@ class FirebaseSyncManager(
         const val COLL_USERS = "users"
         const val COLL_CHAT = "arena_chat"
         const val COLL_ADMIN_INVITES = "admin_invites"
+        const val COLL_ATHLETE_REGISTRATIONS = "athlete_registrations"
     }
 
     private val firestore: FirebaseFirestore by lazy {
@@ -82,6 +85,9 @@ class FirebaseSyncManager(
         )
     )
     val adminInvites: StateFlow<List<com.example.data.models.AdminInvite>> = _adminInvites.asStateFlow()
+
+    private val _athleteRegistrations = MutableStateFlow<List<RegisteredAthlete>>(defaultEthiopianAthletes)
+    val athleteRegistrations: StateFlow<List<RegisteredAthlete>> = _athleteRegistrations.asStateFlow()
 
     private val listeners = mutableListOf<ListenerRegistration>()
 
@@ -584,6 +590,34 @@ class FirebaseSyncManager(
                 }
             listeners.add(usersListener)
 
+            // 9. Listen to Ethiopian Combat Athlete Registrations in Firestore
+            val registrationsListener = firestore.collection(COLL_ATHLETE_REGISTRATIONS)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Athlete Registrations listener error: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    snapshot?.let { querySnap ->
+                        coroutineScope.launch(Dispatchers.IO) {
+                            try {
+                                val fetchedList = mutableListOf<RegisteredAthlete>()
+                                for (doc in querySnap.documents) {
+                                    val data = doc.data ?: continue
+                                    val athlete = RegisteredAthlete.fromMap(doc.id, data)
+                                    fetchedList.add(athlete)
+                                }
+                                val remoteIds = fetchedList.map { it.athleteId }.toSet()
+                                val mergedList = fetchedList + defaultEthiopianAthletes.filterNot { it.athleteId in remoteIds }
+                                _athleteRegistrations.value = mergedList.sortedByDescending { it.registrationTimestamp }
+                                Log.d(TAG, "Synced ${fetchedList.size} athlete registrations from Firestore")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error parsing athlete registrations from Firestore", e)
+                            }
+                        }
+                    }
+                }
+            listeners.add(registrationsListener)
+
             _syncStatusMessage.value = "🟢 Connected to Firebase Firestore (Live Sync)"
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start realtime sync", e)
@@ -974,6 +1008,48 @@ class FirebaseSyncManager(
             Log.w(TAG, "Notice fetching user role from Firestore: ${e.message}")
         }
         return@withContext "user"
+    }
+
+    suspend fun pushAthleteRegistrationToCloud(athlete: RegisteredAthlete) = withContext(Dispatchers.IO) {
+        try {
+            ensureFirebaseAuthSession()
+            val map = athlete.toMap()
+            firestore.collection(COLL_ATHLETE_REGISTRATIONS).document(athlete.athleteId).set(map, SetOptions.merge()).await()
+            Log.d(TAG, "Successfully synced athlete registration ${athlete.athleteId} to Firestore")
+        } catch (e: FirebaseFirestoreException) {
+            Log.w(TAG, "Firestore write permission note for registration: ${e.message}")
+        } catch (e: Exception) {
+            Log.w(TAG, "Notice pushing athlete registration to Firestore: ${e.message}")
+        }
+    }
+
+    suspend fun deleteAthleteRegistrationFromCloud(athleteId: String) = withContext(Dispatchers.IO) {
+        try {
+            ensureFirebaseAuthSession()
+            firestore.collection(COLL_ATHLETE_REGISTRATIONS).document(athleteId).delete().await()
+            Log.d(TAG, "Deleted athlete registration $athleteId from Firestore")
+        } catch (e: Exception) {
+            Log.w(TAG, "Error deleting athlete registration from Firestore: ${e.message}")
+        }
+    }
+
+    suspend fun updateAthleteRegistrationStatusInCloud(
+        athleteId: String,
+        newStatus: String,
+        newLeagueAssignment: String
+    ) = withContext(Dispatchers.IO) {
+        try {
+            ensureFirebaseAuthSession()
+            val updateMap = hashMapOf<String, Any>(
+                "status" to newStatus,
+                "leagueAssignment" to newLeagueAssignment,
+                "updatedAt" to System.currentTimeMillis()
+            )
+            firestore.collection(COLL_ATHLETE_REGISTRATIONS).document(athleteId).update(updateMap).await()
+            Log.d(TAG, "Updated status for athlete registration $athleteId to $newStatus")
+        } catch (e: Exception) {
+            Log.w(TAG, "Error updating athlete registration status in Firestore: ${e.message}")
+        }
     }
 
     /**

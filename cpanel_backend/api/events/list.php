@@ -19,7 +19,7 @@ try {
 
     // 2. Fetch Bouts with Fighter Details
     $boutsSql = "
-        SELECT 
+        SELECT
             m.*,
             e.event_code,
             e.event_name as parent_event_name,

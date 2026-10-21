@@ -21,8 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'login') {
         $email = trim($_POST['email'] ?? '');
         $password = trim($_POST['password'] ?? '');
-        // Default master passcode for demo or check DB
-        if ($email === SUPERADMIN_EMAIL && ($password === 'etfc2026' || $password === 'admin')) {
+        if (SUPERADMIN_EMAIL !== '' && ADMIN_PASSWORD_HASH !== '' &&
+            $email === SUPERADMIN_EMAIL && password_verify($password, ADMIN_PASSWORD_HASH)) {
+            session_regenerate_id(true);
             $_SESSION['etfc_admin_auth'] = true;
             $_SESSION['admin_email'] = $email;
             $isAdmin = true;
@@ -42,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hlsUrl = trim($_POST['hls_master_url'] ?? DEFAULT_HLS_STREAM_URL);
 
         $stmt = $db->prepare("
-            UPDATE `live_stream_control` 
+            UPDATE `live_stream_control`
             SET `is_live_broadcast_active` = :is_live,
                 `live_round` = :round,
                 `round_clock_seconds` = :clock,
@@ -75,9 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $expiresAt = date('Y-m-d H:i:s', strtotime('+30 days'));
 
             $stmt = $db->prepare("
-                INSERT INTO `ppv_passes` 
+                INSERT INTO `ppv_passes`
                 (`order_ref`, `user_phone`, `event_id`, `payment_provider`, `amount_etb`, `status`, `pass_token`, `access_granted_at`, `expires_at`)
-                VALUES 
+                VALUES
                 (:order_ref, :phone, 2, 'CASH_OFFLINE', 600.00, 'PAID', :token, NOW(), :expires_at)
             ");
             $stmt->execute([
@@ -136,7 +137,7 @@ if ($isAdmin) {
 </head>
 <body class="p-4">
 <div class="container" style="max-width: 1000px;">
-    
+
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
         <div>
@@ -183,7 +184,7 @@ if ($isAdmin) {
     <?php else: ?>
         <!-- Admin Dashboard Content -->
         <div class="row g-4">
-            
+
             <!-- Live Broadcast Control -->
             <div class="col-md-7">
                 <div class="bg-etfc-card p-4 h-100">
@@ -198,7 +199,7 @@ if ($isAdmin) {
 
                     <form method="POST">
                         <input type="hidden" name="action" value="update_stream_control">
-                        
+
                         <div class="form-check form-switch mb-3 p-3 bg-etfc-inner rounded">
                             <input class="form-check-input" type="checkbox" name="is_live" id="isLiveSwitch" <?php echo ($streamStatus && $streamStatus['is_live_broadcast_active']) ? 'checked' : ''; ?>>
                             <label class="form-check-label fw-bold ms-2" for="isLiveSwitch">

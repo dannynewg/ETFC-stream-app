@@ -31,17 +31,17 @@ try {
 
     // Query for active paid PPV pass for this event
     $sql = "
-        SELECT p.*, e.event_name, e.event_code 
+        SELECT p.*, e.event_name, e.event_code
         FROM `ppv_passes` p
         JOIN `events` e ON p.event_id = e.id
-        WHERE p.status = 'PAID' 
+        WHERE p.status = 'PAID'
           AND (e.event_code = :event_code OR :event_code = '')
           AND (
               (:phone != '' AND p.user_phone = :phone) OR
               (:token != '' AND p.pass_token = :token) OR
               (:email != '' AND p.user_email = :email)
           )
-        ORDER BY p.id DESC 
+        ORDER BY p.id DESC
         LIMIT 1
     ";
 

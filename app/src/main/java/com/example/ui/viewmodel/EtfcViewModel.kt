@@ -25,6 +25,7 @@ import com.example.data.models.NewsCategory
 import com.example.data.models.PaymentProvider
 import com.example.data.models.PpvTier
 import com.example.data.models.PreviousFightVideo
+import com.example.data.models.RegisteredAthlete
 import com.example.data.models.StreamQuality
 import com.example.data.models.UserAccount
 import com.example.data.models.UserRole
@@ -93,7 +94,7 @@ data class EtfcUiState(
     val chatInputText: String = "",
     val liveCrowdCheerCount: Int = 1420,
     val offlinePlayFight: DownloadedFightEntity? = null,
-    
+
     // Auth & RBAC State
     val currentUser: UserAccount? = null,
     val allDemoUsers: List<UserAccount> = emptyList(),
@@ -102,7 +103,7 @@ data class EtfcUiState(
     val authErrorMessage: String? = null,
     val authSuccessMessage: String? = null,
     val isProfileDrawerVisible: Boolean = false,
-    
+
     // Real-Time Chat & Moderation State
     val liveChatMessages: List<ChatMessage> = emptyList(),
     val pinnedChatMessage: ChatMessage? = null,
@@ -154,7 +155,9 @@ data class EtfcUiState(
     val isFirebaseSyncing: Boolean = false,
     val firebaseSyncStatusMessage: String? = "🟢 Firebase Realtime Sync Active",
     val isAdminPortalOpen: Boolean = false,
-    val adminSelectedTab: Int = 0
+    val adminSelectedTab: Int = 0,
+    val isAthleteRegistryOpen: Boolean = false,
+    val registryInitialTab: Int = 0
 )
 
 class EtfcViewModel(application: Application) : AndroidViewModel(application) {
@@ -1324,6 +1327,47 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(adminSelectedTab = tabIndex)
     }
 
+    fun openAthleteRegistry(initialTab: Int = 0) {
+        _uiState.value = _uiState.value.copy(
+            isAthleteRegistryOpen = true,
+            registryInitialTab = initialTab
+        )
+    }
+
+    fun closeAthleteRegistry() {
+        _uiState.value = _uiState.value.copy(
+            isAthleteRegistryOpen = false
+        )
+    }
+
+    fun loginAsDemoUser(role: UserRole = UserRole.USER) {
+        val demoAccount = if (role == UserRole.ADMIN) {
+            UserAccount(
+                userId = "usr_admin_demo",
+                email = "admin@etfc.com",
+                handle = "@etfc_admin",
+                displayName = "ETFC Administrator",
+                role = UserRole.ADMIN,
+                authToken = "ETFC.DEMO.ADMIN.TOKEN"
+            )
+        } else {
+            UserAccount(
+                userId = "usr_fan_demo",
+                email = "fan@etfc.com",
+                handle = "@etfc_fan",
+                displayName = "ETFC Fan Member",
+                role = UserRole.USER,
+                authToken = "ETFC.DEMO.USER.TOKEN"
+            )
+        }
+        _uiState.value = _uiState.value.copy(
+            currentUser = demoAccount,
+            isAuthDialogVisible = false,
+            authErrorMessage = null,
+            chatSnackbarMessage = "Logged in as ${demoAccount.displayName} (${demoAccount.role.badgeTitle})"
+        )
+    }
+
     fun saveHeroSlide(slide: HeroSlide) = postMatchPromoPoster(slide)
     fun deleteHeroSlide(slideId: String) = deleteMatchPromoPoster(slideId)
     fun savePreviousVideo(video: PreviousFightVideo) = addPreviousFightVideo(video)
@@ -1556,6 +1600,50 @@ class EtfcViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     val adminInvites: StateFlow<List<com.example.data.models.AdminInvite>> = repository.adminInvites
+
+    val registeredAthletes: StateFlow<List<RegisteredAthlete>> = repository.athleteRegistrations
+
+    fun submitAthleteRegistration(athlete: RegisteredAthlete) {
+        viewModelScope.launch {
+            repository.saveAthleteRegistration(athlete)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "✅ Athlete registration submitted to ETFC Firestore!"
+            )
+        }
+    }
+
+    fun updateAthleteRegistrationStatus(athleteId: String, newStatus: String, newLeagueAssignment: String) {
+        viewModelScope.launch {
+            repository.updateAthleteRegistrationStatus(athleteId, newStatus, newLeagueAssignment)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "Updated athlete registration status to $newStatus"
+            )
+        }
+    }
+
+    fun deleteAthleteRegistration(athleteId: String) {
+        viewModelScope.launch {
+            repository.deleteAthleteRegistration(athleteId)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "Deleted athlete registration from Firestore"
+            )
+        }
+    }
+
+    fun approveAndPromoteAthleteToFighter(athlete: RegisteredAthlete) {
+        viewModelScope.launch {
+            val updated = athlete.copy(
+                status = "Approved & Roster Active",
+                leagueAssignment = if (athlete.leagueAssignment.contains("Pending", ignoreCase = true)) "ETFC Pro Main Roster" else athlete.leagueAssignment
+            )
+            repository.saveAthleteRegistration(updated)
+            val fighter = updated.toFighter()
+            repository.saveFighter(fighter)
+            _uiState.value = _uiState.value.copy(
+                settingsSnackbarMessage = "🏆 Approved ${athlete.fullName} and promoted to active Fighter roster!"
+            )
+        }
+    }
 
     fun inviteAdmin(email: String) {
         val currentUserEmail = _uiState.value.currentUser?.email ?: "dannynewg@gmail.com"

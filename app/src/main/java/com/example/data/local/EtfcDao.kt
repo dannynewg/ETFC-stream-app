@@ -403,4 +403,3 @@ interface EtfcDao {
     @Query("DELETE FROM announcements")
     suspend fun clearAllAnnouncements()
 }
-

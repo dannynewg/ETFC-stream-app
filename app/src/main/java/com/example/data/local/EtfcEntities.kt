@@ -352,6 +352,3 @@ data class AnnouncementEntity(
     val tags: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )
-
-
-

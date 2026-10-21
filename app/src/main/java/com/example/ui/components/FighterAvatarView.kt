@@ -71,9 +71,10 @@ fun FighterAvatarView(
                 .size(size)
                 .clip(CircleShape)
         ) {
-            if (!fighter.photoUrl.isNullOrBlank()) {
+            val photoModel = com.example.ui.util.ImageResolver.getFighterPhoto(fighter)
+            if (photoModel != null) {
                 coil.compose.AsyncImage(
-                    model = fighter.photoUrl,
+                    model = photoModel,
                     contentDescription = fighter.name,
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                     modifier = Modifier.size(size)

@@ -46,9 +46,9 @@ try {
 
     // 2. Insert Pending Pass into Database
     $insertSql = "
-        INSERT INTO `ppv_passes` 
+        INSERT INTO `ppv_passes`
         (`order_ref`, `user_phone`, `user_email`, `event_id`, `payment_provider`, `amount_etb`, `currency`, `status`, `pass_token`, `expires_at`)
-        VALUES 
+        VALUES
         (:order_ref, :user_phone, :user_email, :event_id, :provider, :amount, 'ETB', 'PENDING', :pass_token, :expires_at)
     ";
     $stmt = $db->prepare($insertSql);
@@ -83,7 +83,7 @@ try {
         $checkoutData['payment_instructions'] = "Pay via Chapa Online Checkout with CBE, Awash, Telebirr or Visa";
         $checkoutData['checkout_url'] = "https://checkout.chapa.co/checkout/payment/" . urlencode($orderRef);
     } else {
-        $checkoutData['payment_instructions'] = "Pay {$amount} ETB to CBE Account 1000234857283 with Order reference {$orderRef}";
+        $checkoutData['payment_instructions'] = "Pay {$amount} ETB to the event organizer's configured merchant account with Order reference {$orderRef}";
     }
 
     echo json_encode([

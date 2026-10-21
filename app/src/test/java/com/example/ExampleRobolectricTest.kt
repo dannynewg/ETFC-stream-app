@@ -13,34 +13,31 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [34])
 class ExampleRobolectricTest {
 
     @Test
     fun `read string from context`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val appName = context.getString(R.string.app_name)
-        assertEquals("ETFC Stream", appName)
+        assertEquals(if (BuildConfig.IS_ADMIN_APP) "ETFC Promoter CRM" else "ETFC Stream", appName)
     }
 
     @Test
     fun `test role based access control hierarchy`() {
-        // Free user cannot access Standard PPV or VIP
-        assertFalse(UserRole.FREE_USER.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD))
-        assertFalse(UserRole.FREE_USER.canAccessTier(ContentTier.VIP_RINGSIDE_EXCLUSIVE))
-        assertFalse(UserRole.FREE_USER.canModerate())
+        // Guest can only access free prelims
+        assertTrue(UserRole.GUEST.canAccessTier(ContentTier.FREE_PRELIMS))
+        assertFalse(UserRole.GUEST.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD))
+        assertFalse(UserRole.GUEST.canModerate())
 
-        // PPV buyer can access PPV Main card but not VIP multi-cam
-        assertTrue(UserRole.PPV_BUYER.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD))
-        assertFalse(UserRole.PPV_BUYER.canAccessTier(ContentTier.VIP_RINGSIDE_EXCLUSIVE))
+        // User can access standard PPV and VIP streams
+        assertTrue(UserRole.USER.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD))
+        assertTrue(UserRole.USER.canAccessTier(ContentTier.VIP_RINGSIDE_EXCLUSIVE))
+        assertFalse(UserRole.USER.canModerate())
 
-        // VIP Member can access standard and VIP tiers
-        assertTrue(UserRole.VIP_MEMBER.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD))
-        assertTrue(UserRole.VIP_MEMBER.canAccessTier(ContentTier.VIP_RINGSIDE_EXCLUSIVE))
-        assertFalse(UserRole.VIP_MEMBER.canModerate())
-
-        // Moderator can moderate and access content
-        assertTrue(UserRole.MODERATOR.canModerate())
-        assertTrue(UserRole.MODERATOR.canAccessTier(ContentTier.MODERATION_TOOLS))
+        // Admin can access everything and moderate
+        assertTrue(UserRole.ADMIN.canAccessTier(ContentTier.STANDARD_PPV_MAIN_CARD))
+        assertTrue(UserRole.ADMIN.canAccessTier(ContentTier.MODERATION_TOOLS))
+        assertTrue(UserRole.ADMIN.canModerate())
     }
 }

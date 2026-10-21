@@ -3,6 +3,12 @@ package com.example
 import android.Manifest
 import android.content.Intent
 import android.os.Build
+
+import coil.ImageLoader
+import coil.Coil
+import coil.map.Mapper
+import coil.request.Options
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -88,6 +94,7 @@ import com.example.ui.screens.SplashScreen
 import com.example.ui.screens.TicketsPpvScreen
 import com.example.ui.components.YouTubeInAppPlayerDialog
 import androidx.compose.material.icons.filled.Settings
+import com.example.ui.screens.AdminPanelScreen
 import com.example.ui.theme.EtfcBlueCorner
 import com.example.ui.theme.EtfcBorder
 import com.example.ui.theme.EtfcBorderSubtle
@@ -116,22 +123,41 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         handleNotificationIntent(intent)
 
-        setContent {
-            MyApplicationTheme {
-                // Request Android 13+ Notification Permission on first launch
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    val permissionLauncher = rememberLauncherForActivityResult(
-                        contract = ActivityResultContracts.RequestPermission(),
-                        onResult = { isGranted ->
-                            // Notification permission handled
-                        }
-                    )
-                    LaunchedEffect(Unit) {
-                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                }
 
-                EtfcMainApp(viewModel = viewModel)
+        val imageLoader = ImageLoader.Builder(applicationContext)
+            .components {
+                add(object : Mapper<String, Int> {
+                    override fun map(data: String, options: Options): Int? {
+                        if (data.startsWith("android.resource://") || data.startsWith("drawable://")) {
+                            val resName = data.substringAfterLast("/")
+                            val rName = if (resName.contains(".")) resName.substringBeforeLast(".") else resName
+                            return com.example.ui.util.ImageResolver.getDrawableIdByName(rName)
+                        }
+                        return null
+                    }
+                })
+            }
+            .build()
+        Coil.setImageLoader(imageLoader)
+
+        setContent {
+            androidx.compose.runtime.CompositionLocalProvider(coil.compose.LocalImageLoader provides imageLoader) {
+                MyApplicationTheme {
+                    // Request Android 13+ Notification Permission on first launch
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val permissionLauncher = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.RequestPermission(),
+                            onResult = { isGranted ->
+                                // Notification permission handled
+                            }
+                        )
+                        LaunchedEffect(Unit) {
+                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
+
+                    EtfcMainApp(viewModel = viewModel)
+                }
             }
         }
     }
@@ -192,7 +218,23 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
         return
     }
 
-    // 2. Unified Sign In / Sign Up Gate (Strict: Must be authenticated via Firebase)
+    // 2. Standalone Admin CRM App Flavor Mode
+    if (BuildConfig.IS_ADMIN_APP) {
+        LaunchedEffect(Unit) {
+            if (uiState.currentUser == null) {
+                viewModel.loginAsDemoUser(UserRole.ADMIN)
+            }
+            viewModel.openAdminPortal()
+        }
+
+        AdminPanelScreen(
+            viewModel = viewModel,
+            onNavigateBack = {}
+        )
+        return
+    }
+
+    // 3. Unified Sign In / Sign Up Gate (User App)
     if (uiState.currentUser == null) {
         OnboardingAuthScreen(
             viewModel = viewModel
@@ -239,39 +281,20 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
                                     )
                                 }
                             }
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "ETFC",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 17.sp,
-                                        color = EtfcGold,
-                                        letterSpacing = 1.2.sp
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "STREAM",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 17.sp,
-                                        color = EtfcTextPrimary,
-                                        letterSpacing = 1.2.sp
-                                    )
-                                }
-                                Text(
-                                    text = "OFFICIAL FIGHT CHAMPIONSHIP",
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.sp,
-                                    color = EtfcTextMuted
-                                )
-                            }
+                            Text(
+                                text = "STREAM",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 18.sp,
+                                color = Color.White,
+                                letterSpacing = 1.2.sp
+                            )
                         }
                     },
                     actions = {
                         var showNotificationMenu by remember { mutableStateOf(false) }
 
                         // Push Notification Center Trigger
-                        Box {
+                        Box(modifier = Modifier.padding(end = 12.dp)) {
                             IconButton(
                                 onClick = { showNotificationMenu = true },
                                 modifier = Modifier.testTag("notification_menu_btn")
@@ -336,31 +359,6 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
                                         showNotificationMenu = false
                                         viewModel.triggerPlatformUpdateNotification()
                                     }
-                                )
-                            }
-                        }
-
-                        // Auth & RBAC Profile Badge
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = roleColor.copy(alpha = 0.15f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, roleColor),
-                            modifier = Modifier
-                                .padding(end = 12.dp)
-                                .clickable { viewModel.openProfileDrawer() }
-                                .testTag("top_user_profile_btn")
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(text = currentRole.badgeEmoji, fontSize = 11.sp)
-                                Text(
-                                    text = uiState.currentUser?.displayName?.take(10) ?: "Sign In",
-                                    color = roleColor,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
@@ -551,7 +549,18 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
                         },
                         onOpenTaleOfTheTape = { red, blue -> viewModel.openTaleOfTheTape(red, blue) },
                         onDownloadBout = { bout, quality -> viewModel.downloadFightForOffline(bout, quality) },
-                        onWatchReplay = { viewModel.openYouTubePlayer(null) }
+                        onWatchReplay = { bout ->
+                            val matchingVideo = viewModel.previousVideos.find { vod ->
+                                (vod.fighterRedName.contains(bout.fighterRed.name, ignoreCase = true) || vod.title.contains(bout.fighterRed.name, ignoreCase = true)) &&
+                                (vod.fighterBlueName.contains(bout.fighterBlue.name, ignoreCase = true) || vod.title.contains(bout.fighterBlue.name, ignoreCase = true))
+                            } ?: viewModel.previousVideos.find { vod ->
+                                vod.fighterRedName.contains(bout.fighterRed.name, ignoreCase = true) ||
+                                vod.fighterBlueName.contains(bout.fighterBlue.name, ignoreCase = true) ||
+                                vod.title.contains(bout.fighterRed.name, ignoreCase = true) ||
+                                vod.title.contains(bout.fighterBlue.name, ignoreCase = true)
+                            } ?: viewModel.previousVideos.firstOrNull()
+                            viewModel.openYouTubePlayer(matchingVideo)
+                        }
                     )
                 }
 
@@ -572,7 +581,8 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
                             val other = dynamicFighters.firstOrNull { it.id != fighter.id && it.division == fighter.division }
                                 ?: dynamicFighters.first { it.id != fighter.id }
                             viewModel.openTaleOfTheTape(fighter, other)
-                        }
+                        },
+                        onOpenRegistry = { viewModel.openAthleteRegistry(0) }
                     )
                 }
 
@@ -716,6 +726,20 @@ fun EtfcMainApp(viewModel: EtfcViewModel) {
                     onNavigateBack = { viewModel.closeAdminPortal() }
                 )
             }
+        }
+    }
+
+    // 8. Ethiopian Combat Athlete Registry Portal
+    if (uiState.isAthleteRegistryOpen) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { viewModel.closeAthleteRegistry() },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            com.example.ui.screens.AthleteRegistryScreen(
+                viewModel = viewModel,
+                initialTab = uiState.registryInitialTab,
+                onDismiss = { viewModel.closeAthleteRegistry() }
+            )
         }
     }
 }

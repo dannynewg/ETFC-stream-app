@@ -99,7 +99,7 @@ fun SplashScreen(
         // 1. Entrance animation (scale + fade-in)
         alpha.animateTo(1f, animationSpec = tween(650, easing = FastOutSlowInEasing))
         scale.animateTo(1f, animationSpec = tween(650, easing = FastOutSlowInEasing))
-        
+
         // 2. Perform Firebase Auth & Session check
         authStatusMessage = "Checking Firebase Auth session..."
         delay(600)

@@ -4,7 +4,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    
+
     <!-- Octagon Border in ETFC Gold -->
     <path
         android:pathData="M54,22 L80,33 L89,54 L80,75 L54,86 L28,75 L19,54 L28,33 Z"
@@ -20,21 +20,20 @@
     <path
         android:pathData="M27,47 L30,47 L30,51 L27,51 Z"
         android:fillColor="#000000" />
-        
+
     <!-- T -->
     <path
         android:pathData="M41,42 L56,42 L55,47 L50,47 L46,67 L41,67 L45,47 L40,47 Z"
         android:fillColor="#FAB818" />
-        
+
     <!-- F -->
     <path
         android:pathData="M55,42 L69,42 L68,47 L61,47 L60,52 L66,52 L65,57 L59,57 L57,67 L52,67 Z"
         android:fillColor="#FAB818" />
-        
+
     <!-- C -->
     <path
         android:pathData="M81,43 L84,47 L76,47 C73,47 71,50 70,54 C69,59 71,62 74,62 L82,62 L79,67 L72,67 C67,67 64,62 65,55 C67,47 72,42 78,42 Z"
         android:fillColor="#FAB818" />
 
 </vector>
-

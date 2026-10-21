@@ -40,5 +40,3 @@ val EtfcWarning = Color(0xFFFAB818)
 val EtfcTextPrimary = Color(0xFFFFFFFF)
 val EtfcTextSecondary = Color(0xFF9CA3AF)
 val EtfcTextMuted = Color(0xFF6B7280)
-
-

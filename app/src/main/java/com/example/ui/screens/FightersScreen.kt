@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Compare
+import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -75,6 +77,7 @@ fun FightersScreen(
     onDivisionSelected: (WeightClass?) -> Unit,
     onToggleFavorite: (Fighter, Boolean) -> Unit,
     onCompareFighter: (Fighter) -> Unit,
+    onOpenRegistry: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val favoriteIds = remember(favoriteFighters) {
@@ -100,19 +103,36 @@ fun FightersScreen(
     ) {
         // Header
         item {
-            Column {
-                Text(
-                    text = "ETFC 002 FIGHTER ROSTER",
-                    color = EtfcGold,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.8.sp
-                )
-                Text(
-                    text = "Adwa Fight Night competitors: MMA, Boxing & Muay Thai athletes",
-                    color = EtfcTextSecondary,
-                    fontSize = 11.sp
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "ETFC 002 FIGHTER ROSTER",
+                        color = EtfcGold,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text = "Adwa Fight Night competitors: MMA, Boxing & Muay Thai athletes",
+                        color = EtfcTextSecondary,
+                        fontSize = 11.sp
+                    )
+                }
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onOpenRegistry,
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = EtfcGold),
+                    border = BorderStroke(1.dp, EtfcGold),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Icon(imageVector = androidx.compose.material.icons.Icons.Default.HowToReg, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Register", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 

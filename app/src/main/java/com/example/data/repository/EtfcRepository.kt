@@ -28,6 +28,7 @@ import com.example.data.models.ChatMessage
 import com.example.data.models.ContentTier
 import com.example.data.models.FanChatMessage
 import com.example.data.models.Fighter
+import com.example.data.models.RegisteredAthlete
 import com.example.data.models.FighterHairStyle
 import com.example.data.models.HeroSlide
 import com.example.data.models.HeroSlideType
@@ -46,6 +47,7 @@ import com.example.data.models.WeightClass
 import com.example.data.models.AdminInvite
 import com.example.data.security.SecurityUtils
 import android.util.Log
+import com.example.data.models.defaultEthiopianAthletes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -135,7 +137,7 @@ class EtfcRepository(
                 bio = p?.bio ?: e?.bio ?: base.bio,
                 signatureMove = p?.signatureMove ?: e?.signatureMove ?: base.signatureMove,
                 primaryColorHex = p?.primaryColorHex ?: e?.primaryColorHex ?: base.primaryColorHex,
-                photoUrl = p?.photoUrl ?: e?.photoUrl ?: base.photoUrl,
+                photoUrl = listOfNotNull(p?.photoUrl, e?.photoUrl, base.photoUrl).firstOrNull { it.isNotBlank() } ?: base.photoUrl,
                 wins = e?.wins ?: base.wins,
                 losses = e?.losses ?: base.losses,
                 draws = e?.draws ?: base.draws,
@@ -257,6 +259,7 @@ class EtfcRepository(
         // 1. Sedo (Middleweight MMA - Red Corner Main Event)
         Fighter(
             id = "f_sedo",
+            photoUrl = "android.resource://com.example/drawable/profile_sedo",
             name = "Sedo",
             nickname = "The Demolisher",
             countryName = "Ethiopia",
@@ -283,6 +286,7 @@ class EtfcRepository(
         // 2. Jhonny (Middleweight MMA - Blue Corner Champion Main Event)
         Fighter(
             id = "f_jhonny",
+            photoUrl = "android.resource://com.example/drawable/profile_jhonny",
             name = "Jhonny",
             nickname = "The Champion",
             countryName = "Ethiopia",
@@ -309,6 +313,7 @@ class EtfcRepository(
         // 3. Elezar (MMA Bout)
         Fighter(
             id = "f_elezar",
+            photoUrl = "android.resource://com.example/drawable/profile_elezer",
             name = "Elezar",
             nickname = "The Gladiator",
             countryName = "Ethiopia",
@@ -335,6 +340,7 @@ class EtfcRepository(
         // 4. Kaleab (MMA Bout)
         Fighter(
             id = "f_kaleab",
+            photoUrl = "android.resource://com.example/drawable/profile_kaleab",
             name = "Kaleab",
             nickname = "The Panther",
             countryName = "Ethiopia",
@@ -361,6 +367,7 @@ class EtfcRepository(
         // 5. Edris (MMA Bout)
         Fighter(
             id = "f_edris",
+            photoUrl = "android.resource://com.example/drawable/profile_edris",
             name = "Edris",
             nickname = "The Barbarian",
             countryName = "Ethiopia",
@@ -387,6 +394,7 @@ class EtfcRepository(
         // 6. Boyka (MMA Bout)
         Fighter(
             id = "f_boyka",
+            photoUrl = "android.resource://com.example/drawable/profile_boyka",
             name = "Boyka",
             nickname = "The Undisputed",
             countryName = "South Sudan",
@@ -413,6 +421,7 @@ class EtfcRepository(
         // 7. Robel (MMA Bout)
         Fighter(
             id = "f_robel",
+            photoUrl = "android.resource://com.example/drawable/profile_robel",
             name = "Robel",
             nickname = "The Eagle",
             countryName = "Ethiopia",
@@ -439,6 +448,7 @@ class EtfcRepository(
         // 8. Nikatehilina (MMA Bout)
         Fighter(
             id = "f_nikatehilina",
+            photoUrl = "android.resource://com.example/drawable/profile_nikatehilina",
             name = "Nikatehilina",
             nickname = "The Warrior",
             countryName = "Ethiopia",
@@ -465,6 +475,7 @@ class EtfcRepository(
         // 9. Biniam (Boxing Match)
         Fighter(
             id = "f_biniam",
+            photoUrl = "android.resource://com.example/drawable/profile_biniam",
             name = "Biniam",
             nickname = "The Precision",
             countryName = "Ethiopia",
@@ -491,6 +502,7 @@ class EtfcRepository(
         // 10. Esubalew (Boxing Match)
         Fighter(
             id = "f_esubalew",
+            photoUrl = "android.resource://com.example/drawable/profile_esubalew",
             name = "Esubalew",
             nickname = "Iron Fist",
             countryName = "Ethiopia",
@@ -517,6 +529,7 @@ class EtfcRepository(
         // 11. Haymanot (Boxing Match)
         Fighter(
             id = "f_haymanot",
+            photoUrl = "android.resource://com.example/drawable/profile_haymanot",
             name = "Haymanot",
             nickname = "Lightning",
             countryName = "Ethiopia",
@@ -543,6 +556,7 @@ class EtfcRepository(
         // 12. Abreham (Boxing Match)
         Fighter(
             id = "f_abreham",
+            photoUrl = "android.resource://com.example/drawable/profile_abreham",
             name = "Abreham",
             nickname = "The Shadow",
             countryName = "Ethiopia",
@@ -569,6 +583,7 @@ class EtfcRepository(
         // 13. Desalegn (Boxing Match)
         Fighter(
             id = "f_desalegn",
+            photoUrl = "android.resource://com.example/drawable/profile_desalegn",
             name = "Desalegn",
             nickname = "The Hammer",
             countryName = "Ethiopia",
@@ -595,6 +610,7 @@ class EtfcRepository(
         // 14. Surafel (Boxing Match)
         Fighter(
             id = "f_surafel",
+            photoUrl = "android.resource://com.example/drawable/profile_surafel",
             name = "Surafel",
             nickname = "The Cobra",
             countryName = "Ethiopia",
@@ -621,6 +637,7 @@ class EtfcRepository(
         // 15. Rebik (Muay Thai Match)
         Fighter(
             id = "f_rebik",
+            photoUrl = "android.resource://com.example/drawable/profile_rebik",
             name = "Rebik",
             nickname = "The Dragon",
             countryName = "Ethiopia",
@@ -647,6 +664,7 @@ class EtfcRepository(
         // 16. Stephen (Muay Thai Match)
         Fighter(
             id = "f_stephen",
+            photoUrl = "android.resource://com.example/drawable/profile_stephen",
             name = "Stephen",
             nickname = "The Storm",
             countryName = "Kenya",
@@ -673,6 +691,7 @@ class EtfcRepository(
         // 17. Habtamu (Muay Thai Match)
         Fighter(
             id = "f_habtamu",
+            photoUrl = "android.resource://com.example/drawable/profile_habtamu",
             name = "Habtamu",
             nickname = "The Lion",
             countryName = "Ethiopia",
@@ -699,6 +718,7 @@ class EtfcRepository(
         // 18. Frezer (Muay Thai Match)
         Fighter(
             id = "f_frezer",
+            photoUrl = "android.resource://com.example/drawable/profile_frezer",
             name = "Frezer",
             nickname = "The Sniper",
             countryName = "Ethiopia",
@@ -725,6 +745,7 @@ class EtfcRepository(
         // 19. Zahara (Muay Thai Match - Female)
         Fighter(
             id = "f_zahara",
+            photoUrl = "android.resource://com.example/drawable/profile_zahara",
             name = "Zahara",
             nickname = "The Queen",
             countryName = "Ethiopia",
@@ -751,6 +772,7 @@ class EtfcRepository(
         // 20. Yabsira (Muay Thai Match - Female)
         Fighter(
             id = "f_yabsira",
+            photoUrl = "android.resource://com.example/drawable/profile_yabsira",
             name = "Yabsira",
             nickname = "The Valkyrie",
             countryName = "Ethiopia",
@@ -1243,7 +1265,7 @@ class EtfcRepository(
         )
 
         dao.insertDownloadedFight(initialEntity)
-        
+
         // Progressively simulate fast edge CDN download
         delay(800)
         dao.updateDownloadProgress(downloadId, 0.55f, false)
@@ -1322,7 +1344,7 @@ class EtfcRepository(
                 email = "dannynewg@gmail.com",
                 handle = "@dannynewg",
                 displayName = "Danny Newg",
-                passwordHash = SecurityUtils.hashPassword("admin123"),
+                passwordHash = "",
                 phoneNumber = "+251911000000",
                 countryCode = "+251",
                 flagEmoji = "🇪🇹",
@@ -1584,8 +1606,8 @@ class EtfcRepository(
         }
 
         val cloudRole = syncManager?.fetchUserRole(userEntity.email) ?: "user"
-        val isAdminEmail = userEntity.email.equals("dannynewg@gmail.com", ignoreCase = true) || 
-            (syncManager?.isEmailInvitedAdmin(userEntity.email) ?: false) || 
+        val isAdminEmail = userEntity.email.equals("dannynewg@gmail.com", ignoreCase = true) ||
+            (syncManager?.isEmailInvitedAdmin(userEntity.email) ?: false) ||
             cloudRole == "admin"
         val currentRole = if (isAdminEmail) UserRole.ADMIN.name else UserRole.USER.name
         val newToken = SecurityUtils.generateAuthToken(userEntity.userId, currentRole)
@@ -1632,6 +1654,22 @@ class EtfcRepository(
         listOf(AdminInvite("dannynewg@gmail.com", "Owner", 0L, "ACTIVE_OWNER"))
     ).asStateFlow()
 
+    val athleteRegistrations: StateFlow<List<RegisteredAthlete>> = syncManager?.athleteRegistrations ?: MutableStateFlow(
+        defaultEthiopianAthletes
+    ).asStateFlow()
+
+    suspend fun saveAthleteRegistration(athlete: RegisteredAthlete) {
+        syncManager?.pushAthleteRegistrationToCloud(athlete)
+    }
+
+    suspend fun deleteAthleteRegistration(athleteId: String) {
+        syncManager?.deleteAthleteRegistrationFromCloud(athleteId)
+    }
+
+    suspend fun updateAthleteRegistrationStatus(athleteId: String, newStatus: String, newLeagueAssignment: String) {
+        syncManager?.updateAthleteRegistrationStatusInCloud(athleteId, newStatus, newLeagueAssignment)
+    }
+
     suspend fun inviteAdminUser(email: String, invitedBy: String = "dannynewg@gmail.com"): Result<Unit> {
         return syncManager?.inviteAdminUser(email, invitedBy) ?: Result.success(Unit)
     }
@@ -1654,7 +1692,7 @@ class EtfcRepository(
     ): Result<UserAccount> {
         val cleanHandle = if (handle.startsWith("@")) handle.trim() else "@${handle.trim()}"
         val cleanName = displayName.trim().ifEmpty { cleanHandle.removePrefix("@") }
-        
+
         dao.updateUserDetails(
             userId = userId,
             displayName = cleanName,
@@ -1680,7 +1718,7 @@ class EtfcRepository(
     ): AuthResult {
         val cleanEmail = googleEmail.trim().lowercase()
         var existing = dao.getUserByEmail(cleanEmail)
-        
+
         if (existing == null) {
             val generatedHandle = "@${cleanEmail.substringBefore("@").replace(".", "_")}"
             val userId = "usr_g_${UUID.randomUUID().toString().take(8)}"
@@ -1984,6 +2022,7 @@ class EtfcRepository(
         // Poster 1: Sedo vs Jhonny II (ETFC 003 Championship Main Event)
         HeroSlide(
             id = "hero_poster_sedo_jhonny",
+            posterImageUrl = "android.resource://com.example/drawable/poster_sedo_jhonny",
             type = HeroSlideType.MATCH_PROMO_POSTER,
             tag = "🏆 ETFC 003 MAIN EVENT",
             title = "SEDO vs JHONNY II",
@@ -2008,6 +2047,7 @@ class EtfcRepository(
         // Poster 2: Elezer vs Kaleab
         HeroSlide(
             id = "hero_poster_kaleab_elezer",
+            posterImageUrl = "android.resource://com.example/drawable/poster_laleab_elezer",
             type = HeroSlideType.MATCH_PROMO_POSTER,
             tag = "🥊 ETFC 003 CO-MAIN",
             title = "ELEZER vs KALEAB",
@@ -2031,6 +2071,7 @@ class EtfcRepository(
         // Poster 3: Zahara vs Yabsira
         HeroSlide(
             id = "hero_poster_yeamlaksira_zahara",
+            posterImageUrl = "android.resource://com.example/drawable/poster_zehara_yabsera",
             type = HeroSlideType.MATCH_PROMO_POSTER,
             tag = "🔥 MUAY THAI TITLE",
             title = "ZAHARA vs YABSIRA",
@@ -2124,84 +2165,12 @@ class EtfcRepository(
             likesCount = 9820,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeVideoId = "0a8G81bZ7X0",
-            thumbnailUrl = "https://img.youtube.com/vi/0a8G81bZ7X0/hqdefault.jpg",
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/0a8G81bZ7X0?autoplay=1&enablejsapi=1"
+            youtubeVideoId = "AbhialeWe7U",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_sedo_jhonny",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/AbhialeWe7U?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_02",
-            title = "Kaleab Girma vs Elezer Mussie (Full MMA Match)",
-            subtitle = "High-stakes Adwa Fight Night Welterweight MMA Clash",
-            eventName = "ETFC 002: Adwa Fight Night",
-            category = VideoCategory.FULL_REPLAY,
-            durationText = "16:45",
-            durationSeconds = 1005,
-            viewsCountStr = "215K views",
-            publishedTimeAgo = "ETFC Official Archive",
-            fighterRedName = "Kaleab Girma",
-            fighterBlueName = "Elezer Mussie",
-            resultMethod = "TKO (Ground & Pound)",
-            finishRoundText = "Round 2 • 3:12",
-            fileSizeMb = 195,
-            isTitleFight = false,
-            contentTier = ContentTier.FREE_PRELIMS,
-            likesCount = 5430,
-            youtubePlaylistUrl = youtubePlaylistUrl,
-            youtubePlaylistId = youtubePlaylistId,
-            youtubeVideoId = "M7lc1UVf-VE",
-            thumbnailUrl = "https://img.youtube.com/vi/M7lc1UVf-VE/hqdefault.jpg",
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/M7lc1UVf-VE?autoplay=1&enablejsapi=1"
-        ),
-        PreviousFightVideo(
-            id = "yt_vod_03",
-            title = "Yeamlaksira vs Zahara (Muay Thai Co-Main Event)",
-            subtitle = "Explosive Women's Flyweight Muay Thai Clash with relentless combinations",
-            eventName = "ETFC 002: Adwa Fight Night",
-            category = VideoCategory.FULL_REPLAY,
-            durationText = "12:30",
-            durationSeconds = 750,
-            viewsCountStr = "188K views",
-            publishedTimeAgo = "ETFC Official Archive",
-            fighterRedName = "Yeamlaksira",
-            fighterBlueName = "Zahara",
-            resultMethod = "Unanimous Decision",
-            finishRoundText = "3 Full Rounds",
-            fileSizeMb = 160,
-            isTitleFight = false,
-            contentTier = ContentTier.FREE_PRELIMS,
-            likesCount = 7610,
-            youtubePlaylistUrl = youtubePlaylistUrl,
-            youtubePlaylistId = youtubePlaylistId,
-            youtubeVideoId = "9bZkp7q19f0",
-            thumbnailUrl = "https://img.youtube.com/vi/9bZkp7q19f0/hqdefault.jpg",
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/9bZkp7q19f0?autoplay=1&enablejsapi=1"
-        ),
-        PreviousFightVideo(
-            id = "yt_vod_04",
-            title = "Rebik Sani 🇪🇹 vs Stephen Okony 🇸🇸 (Muay Thai War)",
-            subtitle = "Ethiopia vs South Sudan international Muay Thai clash at Adwa 00 Museum",
-            eventName = "ETFC 002: Adwa Fight Night",
-            category = VideoCategory.FULL_REPLAY,
-            durationText = "14:10",
-            durationSeconds = 850,
-            viewsCountStr = "290K views",
-            publishedTimeAgo = "ETFC Official Archive",
-            fighterRedName = "Rebik Sani",
-            fighterBlueName = "Stephen Okony",
-            resultMethod = "KO (Flying Knee)",
-            finishRoundText = "Round 2 • 1:55",
-            fileSizeMb = 180,
-            isTitleFight = false,
-            contentTier = ContentTier.FREE_PRELIMS,
-            likesCount = 8340,
-            youtubePlaylistUrl = youtubePlaylistUrl,
-            youtubePlaylistId = youtubePlaylistId,
-            youtubeVideoId = "kJQP7kiw5Fk",
-            thumbnailUrl = "https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg",
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/kJQP7kiw5Fk?autoplay=1&enablejsapi=1"
-        ),
-        PreviousFightVideo(
-            id = "yt_vod_05",
             title = "Desalegn vs Surafel (Boxing Match Slugfest)",
             subtitle = "Heavyweight punching power exchange across 4 intense rounds",
             eventName = "ETFC 002: Adwa Fight Night",
@@ -2220,36 +2189,84 @@ class EtfcRepository(
             likesCount = 3980,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeVideoId = "fJ9rUzIMcZQ",
-            thumbnailUrl = "https://img.youtube.com/vi/fJ9rUzIMcZQ/hqdefault.jpg",
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/fJ9rUzIMcZQ?autoplay=1&enablejsapi=1"
+            youtubeVideoId = "ViiQ884oYIM",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_desalegn_surafel",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/ViiQ884oYIM?autoplay=1&enablejsapi=1"
+        ),
+        PreviousFightVideo(
+            id = "yt_vod_03",
+            title = "Esubalew vs Biniyam (Welterweight Pro Boxing)",
+            subtitle = "High-octane boxing battle between two technical knockout artists",
+            eventName = "ETFC 002: Adwa Fight Night",
+            category = VideoCategory.FULL_REPLAY,
+            durationText = "19:30",
+            durationSeconds = 1170,
+            viewsCountStr = "195K views",
+            publishedTimeAgo = "ETFC Official Archive",
+            fighterRedName = "Esubalew",
+            fighterBlueName = "Biniam",
+            resultMethod = "KO (Body Hook)",
+            finishRoundText = "Round 4 • 1:12",
+            fileSizeMb = 230,
+            isTitleFight = false,
+            contentTier = ContentTier.FREE_PRELIMS,
+            likesCount = 6120,
+            youtubePlaylistUrl = youtubePlaylistUrl,
+            youtubePlaylistId = youtubePlaylistId,
+            youtubeVideoId = "wqaIXDlsMAA",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_esubalew_biniyam",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/wqaIXDlsMAA?autoplay=1&enablejsapi=1"
+        ),
+        PreviousFightVideo(
+            id = "yt_vod_04",
+            title = "Habtamu vs Frezer (Bantamweight MMA Showdown)",
+            subtitle = "Furious striking exchanges and high-level grappling scrambles",
+            eventName = "ETFC 002: Adwa Fight Night",
+            category = VideoCategory.FULL_REPLAY,
+            durationText = "11:20",
+            durationSeconds = 680,
+            viewsCountStr = "165K views",
+            publishedTimeAgo = "ETFC Official Archive",
+            fighterRedName = "Habtamu",
+            fighterBlueName = "Frezer",
+            resultMethod = "TKO (Ground & Pound)",
+            finishRoundText = "Round 2 • 4:15",
+            fileSizeMb = 145,
+            isTitleFight = false,
+            contentTier = ContentTier.FREE_PRELIMS,
+            likesCount = 4820,
+            youtubePlaylistUrl = youtubePlaylistUrl,
+            youtubePlaylistId = youtubePlaylistId,
+            youtubeVideoId = "2uGGk7vCLfU",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_habtamu_frezer",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/2uGGk7vCLfU?autoplay=1&enablejsapi=1"
+        ),
+        PreviousFightVideo(
+            id = "yt_vod_05",
+            title = "Kaleab Girma vs Elezer Mussie (Full MMA Match)",
+            subtitle = "High-stakes Adwa Fight Night Welterweight MMA Clash",
+            eventName = "ETFC 002: Adwa Fight Night",
+            category = VideoCategory.FULL_REPLAY,
+            durationText = "16:45",
+            durationSeconds = 1005,
+            viewsCountStr = "215K views",
+            publishedTimeAgo = "ETFC Official Archive",
+            fighterRedName = "Kaleab Girma",
+            fighterBlueName = "Elezer Mussie",
+            resultMethod = "TKO (Ground & Pound)",
+            finishRoundText = "Round 2 • 3:12",
+            fileSizeMb = 195,
+            isTitleFight = false,
+            contentTier = ContentTier.FREE_PRELIMS,
+            likesCount = 5430,
+            youtubePlaylistUrl = youtubePlaylistUrl,
+            youtubePlaylistId = youtubePlaylistId,
+            youtubeVideoId = "KjzLHf2M6O8",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_laleab_elezer",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/KjzLHf2M6O8?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_06",
-            title = "ETFC 002: Top Knockouts & Highlight Reel",
-            subtitle = "The most brutal stoppages and highlight moments from Adwa Fight Night",
-            eventName = "ETFC 002 Highlights",
-            category = VideoCategory.KO_HIGHLIGHTS,
-            durationText = "08:45",
-            durationSeconds = 525,
-            viewsCountStr = "520K views",
-            publishedTimeAgo = "ETFC Official Archive",
-            fighterRedName = "All Contenders",
-            fighterBlueName = "ETFC Roster",
-            resultMethod = "Knockout Reel",
-            finishRoundText = "All Finishes",
-            fileSizeMb = 115,
-            isTitleFight = true,
-            contentTier = ContentTier.FREE_PRELIMS,
-            likesCount = 14200,
-            youtubePlaylistUrl = youtubePlaylistUrl,
-            youtubePlaylistId = youtubePlaylistId,
-            youtubeVideoId = "kXYiU_JCYtU",
-            thumbnailUrl = "https://img.youtube.com/vi/kXYiU_JCYtU/hqdefault.jpg",
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/kXYiU_JCYtU?autoplay=1&enablejsapi=1"
-        ),
-        PreviousFightVideo(
-            id = "yt_vod_07",
             title = "Mesfin vs Abenezer (Full Boxing Match)",
             subtitle = "Pugilistic masterclass and counter-striking showcase from Adwa 00 Museum",
             eventName = "ETFC 002: Adwa Fight Night",
@@ -2268,12 +2285,156 @@ class EtfcRepository(
             likesCount = 3110,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeVideoId = "C0DPdy98e4c",
-            thumbnailUrl = "https://img.youtube.com/vi/C0DPdy98e4c/hqdefault.jpg",
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/C0DPdy98e4c?autoplay=1&enablejsapi=1"
+            youtubeVideoId = "C7qWgq7_4W4",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_mesfin_abenezer",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/C7qWgq7_4W4?autoplay=1&enablejsapi=1"
+        ),
+        PreviousFightVideo(
+            id = "yt_vod_07",
+            title = "Rebik Sani 🇪🇹 vs Stephen Okony 🇸🇸 (Muay Thai War)",
+            subtitle = "Ethiopia vs South Sudan international Muay Thai clash at Adwa 00 Museum",
+            eventName = "ETFC 002: Adwa Fight Night",
+            category = VideoCategory.FULL_REPLAY,
+            durationText = "14:10",
+            durationSeconds = 850,
+            viewsCountStr = "290K views",
+            publishedTimeAgo = "ETFC Official Archive",
+            fighterRedName = "Rebik Sani",
+            fighterBlueName = "Stephen Okony",
+            resultMethod = "KO (Flying Knee)",
+            finishRoundText = "Round 2 • 1:55",
+            fileSizeMb = 180,
+            isTitleFight = false,
+            contentTier = ContentTier.FREE_PRELIMS,
+            likesCount = 8340,
+            youtubePlaylistUrl = youtubePlaylistUrl,
+            youtubePlaylistId = youtubePlaylistId,
+            youtubeVideoId = "MRacxKr6H08",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_rebik_stephen",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/MRacxKr6H08?autoplay=1&enablejsapi=1"
         ),
         PreviousFightVideo(
             id = "yt_vod_08",
+            title = "Robel vs Nikatehilina (Featherweight MMA Bout)",
+            subtitle = "Relentless wrestling and submission hunt in the featherweight division",
+            eventName = "ETFC 002: Adwa Fight Night",
+            category = VideoCategory.FULL_REPLAY,
+            durationText = "07:45",
+            durationSeconds = 465,
+            viewsCountStr = "235K views",
+            publishedTimeAgo = "ETFC Official Archive",
+            fighterRedName = "Robel",
+            fighterBlueName = "Nikatehilina",
+            resultMethod = "Submission (Guillotine Choke)",
+            finishRoundText = "Round 1 • 3:45",
+            fileSizeMb = 120,
+            isTitleFight = false,
+            contentTier = ContentTier.FREE_PRELIMS,
+            likesCount = 6890,
+            youtubePlaylistUrl = youtubePlaylistUrl,
+            youtubePlaylistId = youtubePlaylistId,
+            youtubeVideoId = "LuOFHOVl4qk",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_robel_nikatehilina",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/LuOFHOVl4qk?autoplay=1&enablejsapi=1"
+        ),
+        PreviousFightVideo(
+            id = "yt_vod_09",
+            title = "Zehara vs Yabsera (Muay Thai Co-Main Event)",
+            subtitle = "Explosive Women's Flyweight Muay Thai Clash with relentless combinations",
+            eventName = "ETFC 002: Adwa Fight Night",
+            category = VideoCategory.FULL_REPLAY,
+            durationText = "12:30",
+            durationSeconds = 750,
+            viewsCountStr = "188K views",
+            publishedTimeAgo = "ETFC Official Archive",
+            fighterRedName = "Zehara",
+            fighterBlueName = "Yabsera",
+            resultMethod = "Unanimous Decision",
+            finishRoundText = "3 Full Rounds",
+            fileSizeMb = 160,
+            isTitleFight = false,
+            contentTier = ContentTier.FREE_PRELIMS,
+            likesCount = 7610,
+            youtubePlaylistUrl = youtubePlaylistUrl,
+            youtubePlaylistId = youtubePlaylistId,
+            youtubeVideoId = "vCQIftUMDNs",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_zehara_yabsera",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/vCQIftUMDNs?autoplay=1&enablejsapi=1"
+        ),
+        PreviousFightVideo(
+            id = "yt_vod_10",
+            title = "Boyka vs Endris (Lightweight MMA Clash)",
+            subtitle = "Heavy hitting lightweight contenders colliding in an adrenaline-fueled bout",
+            eventName = "ETFC 002: Adwa Fight Night",
+            category = VideoCategory.FULL_REPLAY,
+            durationText = "09:15",
+            durationSeconds = 555,
+            viewsCountStr = "310K views",
+            publishedTimeAgo = "ETFC Official Archive",
+            fighterRedName = "Boyka",
+            fighterBlueName = "Endris",
+            resultMethod = "TKO (Strikes)",
+            finishRoundText = "Round 1 • 2:30",
+            fileSizeMb = 140,
+            isTitleFight = false,
+            contentTier = ContentTier.FREE_PRELIMS,
+            likesCount = 8920,
+            youtubePlaylistUrl = youtubePlaylistUrl,
+            youtubePlaylistId = youtubePlaylistId,
+            youtubeVideoId = "1VeNa4bvRlo",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_boyka_endris",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/1VeNa4bvRlo?autoplay=1&enablejsapi=1"
+        ),
+        PreviousFightVideo(
+            id = "yt_vod_11",
+            title = "Tyson vs Abraham (Lightweight Pro Boxing)",
+            subtitle = "Addis Ababa boxing war with explosive exchanges from the opening bell",
+            eventName = "ETFC 002: Adwa Fight Night",
+            category = VideoCategory.FULL_REPLAY,
+            durationText = "14:50",
+            durationSeconds = 890,
+            viewsCountStr = "175K views",
+            publishedTimeAgo = "ETFC Official Archive",
+            fighterRedName = "Tyson",
+            fighterBlueName = "Abraham",
+            resultMethod = "Unanimous Decision",
+            finishRoundText = "4 Full Rounds",
+            fileSizeMb = 185,
+            isTitleFight = false,
+            contentTier = ContentTier.FREE_PRELIMS,
+            likesCount = 4230,
+            youtubePlaylistUrl = youtubePlaylistUrl,
+            youtubePlaylistId = youtubePlaylistId,
+            youtubeVideoId = "xkurLxu0Hps",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_tyson_abraham",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/xkurLxu0Hps?autoplay=1&enablejsapi=1"
+        ),
+        PreviousFightVideo(
+            id = "yt_vod_12",
+            title = "ETFC 002: Top Knockouts & Highlight Reel",
+            subtitle = "The most brutal stoppages and highlight moments from Adwa Fight Night",
+            eventName = "ETFC 002 Highlights",
+            category = VideoCategory.KO_HIGHLIGHTS,
+            durationText = "08:45",
+            durationSeconds = 525,
+            viewsCountStr = "520K views",
+            publishedTimeAgo = "ETFC Official Archive",
+            fighterRedName = "All Contenders",
+            fighterBlueName = "ETFC Roster",
+            resultMethod = "Knockout Reel",
+            finishRoundText = "All Finishes",
+            fileSizeMb = 115,
+            isTitleFight = true,
+            contentTier = ContentTier.FREE_PRELIMS,
+            likesCount = 14200,
+            youtubePlaylistUrl = youtubePlaylistUrl,
+            youtubePlaylistId = youtubePlaylistId,
+            youtubeVideoId = "AbhialeWe7U",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_sedo_jhonny",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/AbhialeWe7U?autoplay=1&enablejsapi=1"
+        ),
+        PreviousFightVideo(
+            id = "yt_vod_13",
             title = "Post-Fight Press Conference & Bonuses: ETFC 002",
             subtitle = "Fighters react to dramatic finishes, bonus awards, and upcoming title challenges",
             eventName = "ETFC 002 Media Day",
@@ -2292,9 +2453,9 @@ class EtfcRepository(
             likesCount = 2890,
             youtubePlaylistUrl = youtubePlaylistUrl,
             youtubePlaylistId = youtubePlaylistId,
-            youtubeVideoId = "RgKAFK5djSk",
-            thumbnailUrl = "https://img.youtube.com/vi/RgKAFK5djSk/hqdefault.jpg",
-            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/RgKAFK5djSk?autoplay=1&enablejsapi=1"
+            youtubeVideoId = "MRacxKr6H08",
+            thumbnailUrl = "android.resource://com.example/drawable/poster_rebik_stephen",
+            youtubeEmbedUrl = "https://www.youtube-nocookie.com/embed/MRacxKr6H08?autoplay=1&enablejsapi=1"
         )
     )
 
@@ -3443,5 +3604,3 @@ fun AnnouncementEntity.toModel(): NewsArticle {
         imageUrl = this.imageUrl
     )
 }
-
-

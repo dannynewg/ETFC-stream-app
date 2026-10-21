@@ -17,8 +17,8 @@ android {
     applicationId = "com.aistudio.etfcstream.vfkqw"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = 2
+    versionName = "1.0.002"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -31,11 +31,21 @@ android {
       keyAlias = "upload"
       keyPassword = System.getenv("KEY_PASSWORD")
     }
-    create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
+  }
+
+  flavorDimensions += "appMode"
+  productFlavors {
+    create("user") {
+      dimension = "appMode"
+      applicationId = "com.aistudio.etfcstream.vfkqw"
+      resValue("string", "app_name", "ETFC Stream")
+      buildConfigField("Boolean", "IS_ADMIN_APP", "false")
+    }
+    create("admin") {
+      dimension = "appMode"
+      applicationId = "com.aistudio.etfcstream.admin"
+      resValue("string", "app_name", "ETFC Promoter CRM")
+      buildConfigField("Boolean", "IS_ADMIN_APP", "true")
     }
   }
 
@@ -46,7 +56,7 @@ android {
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
-    debug { signingConfig = signingConfigs.getByName("debugConfig") }
+    // Debug variants use the automatically generated Android debug key.
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -55,6 +65,7 @@ android {
   buildFeatures {
     compose = true
     buildConfig = true
+    resValues = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
   dependenciesInfo {

@@ -32,4 +32,3 @@ fun SecureScreenEffect(isSecured: Boolean = true) {
         }
     }
 }
-

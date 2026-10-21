@@ -1,63 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions for Role-Based Access Control
-    function isAuthenticated() {
-      return request.auth != null;
+    function authenticated() { return request.auth != null; }
+    function admin() { return authenticated() && request.auth.token.admin == true; }
+    function owner(uid) { return authenticated() && request.auth.uid == uid; }
+    function profileFields() {
+      return ['displayName', 'handle', 'phoneNumber', 'countryCode', 'flagEmoji',
+              'lastLoginTimestamp', 'updatedAt'];
     }
-
-    function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email == 'dannynewg@gmail.com' ||
-        exists(/databases/$(database)/documents/admin_invites/$(request.auth.token.email))
-      );
+    match /{collection}/{id} {
+      allow read: if collection in ['fighters', 'matches', 'hero_slides',
+        'previous_fight_videos', 'news_announcements'];
+      allow write: if admin() && collection in ['fighters', 'matches', 'hero_slides',
+        'previous_fight_videos', 'news_announcements'];
     }
-
-    // Public read for MMA match cards, fighters, hero promo slides, fight videos, and news
-    // Write access restricted strictly to Admin accounts
-    match /fighters/{fighterId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /matches/{matchId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /hero_slides/{slideId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /previous_fight_videos/{videoId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /news_announcements/{newsId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // Admin team invites: only existing admins can read/write invite tokens
     match /admin_invites/{email} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if admin();
     }
-
-    // User accounts collection: users can read and edit their own profile, admins can read all
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    match /users/{uid} {
+      allow read: if owner(uid) || admin();
+      allow create: if admin() || (owner(uid) &&
+        request.resource.data.keys().hasOnly(profileFields().concat(['userId', 'email', 'role', 'createdTimestamp'])) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.role == 'user');
+      allow update: if admin() || (owner(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(profileFields()));
+      allow delete: if admin();
     }
-
-    // Live arena chat: all users can read; authenticated users can send messages; admins can delete/pin
-    match /arena_chat/{messageId} {
+    match /ppv_passes/{uid} {
+      allow read: if owner(uid) || admin();
+      allow write: if false;
+    }
+    match /arena_chat/{id} {
       allow read: if true;
-      allow create: if isAuthenticated();
-      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if authenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if admin();
+      allow delete: if admin() || (authenticated() && resource.data.userId == request.auth.uid);
     }
   }
 }

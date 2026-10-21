@@ -82,7 +82,7 @@ class AuthenticationRepository(
         try {
             val result = firebaseAuth.signInWithEmailAndPassword(cleanEmail, password).await()
             val user = result.user ?: return@withContext AuthResult.Error("Authentication succeeded but no user session returned.")
-            
+
             // Sync with UserDataManager if present
             val role = userDataManager?.fetchUserRoleOnLogin(user.uid, cleanEmail) ?: UserRole.USER
 

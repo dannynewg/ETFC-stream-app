@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,6 +38,7 @@ import coil.compose.AsyncImage
 import com.example.data.models.*
 import com.example.data.remote.YouTubeVideoMetadata
 import com.example.ui.theme.*
+import com.example.ui.util.ImageResolver
 import com.example.ui.viewmodel.EtfcViewModel
 import java.util.UUID
 
@@ -72,8 +74,11 @@ fun AdminPanelScreen(
     var isAddNewsDialogOpen by remember { mutableStateOf(false) }
     var newsToEdit by remember { mutableStateOf<NewsArticle?>(null) }
 
+    val registeredAthletes by viewModel.registeredAthletes.collectAsState()
+
     val tabs = listOf(
         "🥊 Fighters" to dynamicFighters.size,
+        "🏅 Athlete Registry CRM" to registeredAthletes.size,
         "⚔️ Match Cards" to dynamicMatches.size,
         "🖼️ Hero Slider" to dynamicSlides.size,
         "🎬 Fight Videos" to dynamicVideos.size,
@@ -251,7 +256,7 @@ fun AdminPanelScreen(
                         modifier = Modifier.testTag("fab_add_fighter")
                     )
                 }
-                1 -> {
+                2 -> {
                     ExtendedFloatingActionButton(
                         onClick = {
                             matchToEdit = null
@@ -264,7 +269,7 @@ fun AdminPanelScreen(
                         modifier = Modifier.testTag("fab_add_match")
                     )
                 }
-                2 -> {
+                3 -> {
                     ExtendedFloatingActionButton(
                         onClick = {
                             slideToEdit = null
@@ -277,7 +282,7 @@ fun AdminPanelScreen(
                         modifier = Modifier.testTag("fab_add_slide")
                     )
                 }
-                3 -> {
+                4 -> {
                     ExtendedFloatingActionButton(
                         onClick = {
                             videoToEdit = null
@@ -290,7 +295,7 @@ fun AdminPanelScreen(
                         modifier = Modifier.testTag("fab_add_video")
                     )
                 }
-                4 -> {
+                5 -> {
                     ExtendedFloatingActionButton(
                         onClick = {
                             newsToEdit = null
@@ -324,6 +329,20 @@ fun AdminPanelScreen(
                     )
                 }
                 1 -> {
+                    AdminAthleteRegistryCrmTab(
+                        registeredAthletes = registeredAthletes,
+                        onApproveAndPromote = { athlete ->
+                            viewModel.approveAndPromoteAthleteToFighter(athlete)
+                        },
+                        onUpdateStatus = { athleteId, status, league ->
+                            viewModel.updateAthleteRegistrationStatus(athleteId, status, league)
+                        },
+                        onDeleteRegistration = { athleteId ->
+                            viewModel.deleteAthleteRegistration(athleteId)
+                        }
+                    )
+                }
+                2 -> {
                     AdminMatchesManagementTab(
                         matches = dynamicMatches,
                         fighters = dynamicFighters,
@@ -334,7 +353,7 @@ fun AdminPanelScreen(
                         onDeleteMatch = { matchId -> viewModel.deleteMatchCard(matchId) }
                     )
                 }
-                2 -> {
+                3 -> {
                     AdminHeroSlidesTab(
                         slides = dynamicSlides,
                         onEditSlide = { slide ->
@@ -344,7 +363,7 @@ fun AdminPanelScreen(
                         onDeleteSlide = { viewModel.deleteHeroSlide(it) }
                     )
                 }
-                3 -> {
+                4 -> {
                     AdminVideosTab(
                         videos = dynamicVideos,
                         onEditVideo = { video ->
@@ -354,7 +373,7 @@ fun AdminPanelScreen(
                         onDeleteVideo = { viewModel.deletePreviousVideo(it) }
                     )
                 }
-                4 -> {
+                5 -> {
                     AdminNewsTab(
                         articles = dynamicNews,
                         onEditArticle = { article ->
@@ -364,7 +383,7 @@ fun AdminPanelScreen(
                         onDeleteArticle = { viewModel.deleteNewsAnnouncement(it) }
                     )
                 }
-                5 -> {
+                6 -> {
                     AdminCloudAndTeamTab(
                         viewModel = viewModel
                     )
@@ -673,9 +692,10 @@ fun AdminFighterCardItem(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (!fighter.photoUrl.isNullOrBlank()) {
+                    val photoModel = com.example.ui.util.ImageResolver.getFighterPhoto(fighter)
+                    if (photoModel != null) {
                         AsyncImage(
-                            model = fighter.photoUrl,
+                            model = photoModel,
                             contentDescription = fighter.name,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -1077,9 +1097,10 @@ fun AdminMatchCardItem(
                             .border(2.dp, EtfcRedPrimary, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (!bout.fighterRed.photoUrl.isNullOrBlank()) {
+                        val redPhoto = com.example.ui.util.ImageResolver.getFighterPhoto(bout.fighterRed)
+                        if (redPhoto != null) {
                             AsyncImage(
-                                model = bout.fighterRed.photoUrl,
+                                model = redPhoto,
                                 contentDescription = bout.fighterRed.name,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -1154,9 +1175,10 @@ fun AdminMatchCardItem(
                             .border(2.dp, EtfcBlueCorner, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (!bout.fighterBlue.photoUrl.isNullOrBlank()) {
+                        val bluePhoto = com.example.ui.util.ImageResolver.getFighterPhoto(bout.fighterBlue)
+                        if (bluePhoto != null) {
                             AsyncImage(
-                                model = bout.fighterBlue.photoUrl,
+                                model = bluePhoto,
                                 contentDescription = bout.fighterBlue.name,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -1408,9 +1430,10 @@ fun FighterAddEditDialog(
                                     .border(2.dp, EtfcGold, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (photoUriString.isNotEmpty()) {
+                                val previewModel = com.example.ui.util.ImageResolver.resolve(photoUriString)
+                                if (previewModel != null) {
                                     AsyncImage(
-                                        model = photoUriString,
+                                        model = previewModel,
                                         contentDescription = "Fighter Photo",
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop
@@ -3635,5 +3658,540 @@ fun NewsAddEditDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("CANCEL", color = EtfcTextSecondary) }
         }
+    )
+}
+
+// =========================================================================
+// TAB 1: ATHLETE REGISTRY CRM & LEAGUE PLACEMENT
+// =========================================================================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminAthleteRegistryCrmTab(
+    registeredAthletes: List<RegisteredAthlete>,
+    onApproveAndPromote: (RegisteredAthlete) -> Unit,
+    onUpdateStatus: (athleteId: String, status: String, league: String) -> Unit,
+    onDeleteRegistration: (String) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedStatusFilter by remember { mutableStateOf("ALL") }
+
+    var athleteToEditStatus by remember { mutableStateOf<RegisteredAthlete?>(null) }
+    var athleteToDelete by remember { mutableStateOf<RegisteredAthlete?>(null) }
+
+    val filteredAthletes = remember(registeredAthletes, searchQuery, selectedStatusFilter) {
+        registeredAthletes.filter { athlete ->
+            val matchesStatus = when (selectedStatusFilter) {
+                "VETTING" -> athlete.status.contains("Vetting", ignoreCase = true) || athlete.status.contains("Pending", ignoreCase = true)
+                "APPROVED" -> athlete.status.contains("Approved", ignoreCase = true) || athlete.status.contains("Active", ignoreCase = true)
+                "REJECTED" -> athlete.status.contains("Reject", ignoreCase = true)
+                else -> true
+            }
+            val matchesQuery = searchQuery.isBlank() ||
+                athlete.fullName.contains(searchQuery, ignoreCase = true) ||
+                athlete.amharicName.contains(searchQuery, ignoreCase = true) ||
+                athlete.nickname.contains(searchQuery, ignoreCase = true) ||
+                athlete.primarySport.contains(searchQuery, ignoreCase = true) ||
+                athlete.nationalId.contains(searchQuery, ignoreCase = true) ||
+                athlete.clubAffiliation.contains(searchQuery, ignoreCase = true) ||
+                athlete.region.contains(searchQuery, ignoreCase = true)
+            matchesStatus && matchesQuery
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .testTag("admin_athlete_registry_tab")
+    ) {
+        // Header info banner
+        Card(
+            colors = CardDefaults.cardColors(containerColor = EtfcCard),
+            border = BorderStroke(1.dp, EtfcGold.copy(alpha = 0.3f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(EtfcGold.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.HowToReg,
+                        contentDescription = "CRM",
+                        tint = EtfcGold,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "ATHLETE REGISTRY CRM & LEAGUE PLACEMENT",
+                        color = EtfcGold,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        text = "Review submitted Ethiopian combat athlete credentials, verify licenses, assign fight leagues, and promote approved contenders directly to active database fighters.",
+                        color = EtfcTextMuted,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+
+        // Search & Filter Bar
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search by name, sport, region, ID...", fontSize = 12.sp, color = EtfcTextMuted) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = EtfcGold) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = EtfcGold,
+                    unfocusedBorderColor = EtfcBorderSubtle,
+                    focusedContainerColor = EtfcCard,
+                    unfocusedContainerColor = EtfcCard,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Status Filter Chips
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val filters = listOf(
+                "ALL" to "All (${registeredAthletes.size})",
+                "VETTING" to "⏳ Vetting In Progress (${registeredAthletes.count { it.status.contains("Vetting", true) || it.status.contains("Pending", true) }})",
+                "APPROVED" to "✅ Approved Roster (${registeredAthletes.count { it.status.contains("Approved", true) || it.status.contains("Active", true) }})",
+                "REJECTED" to "❌ Rejected (${registeredAthletes.count { it.status.contains("Reject", true) }})"
+            )
+            items(filters) { (key, label) ->
+                FilterChip(
+                    selected = selectedStatusFilter == key,
+                    onClick = { selectedStatusFilter = key },
+                    label = { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = EtfcGold,
+                        selectedLabelColor = Color.Black,
+                        containerColor = EtfcCard,
+                        labelColor = EtfcTextSecondary
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (filteredAthletes.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = EtfcTextMuted,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No registered athletes match criteria",
+                        color = EtfcTextMuted,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(filteredAthletes, key = { it.athleteId }) { athlete ->
+                    AdminAthleteCrmCard(
+                        athlete = athlete,
+                        onApproveAndPromote = { onApproveAndPromote(athlete) },
+                        onEditStatus = { athleteToEditStatus = athlete },
+                        onDelete = { athleteToDelete = athlete }
+                    )
+                }
+            }
+        }
+    }
+
+    // Status Update Dialog
+    athleteToEditStatus?.let { athlete ->
+        AdminAthleteStatusDialog(
+            athlete = athlete,
+            onDismiss = { athleteToEditStatus = null },
+            onConfirm = { newStatus, newLeague ->
+                onUpdateStatus(athlete.athleteId, newStatus, newLeague)
+                athleteToEditStatus = null
+            }
+        )
+    }
+
+    // Delete confirmation dialog
+    athleteToDelete?.let { athlete ->
+        AlertDialog(
+            onDismissRequest = { athleteToDelete = null },
+            title = { Text("Delete Registration", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete the registration application for ${athlete.fullName}? This action removes the entry from Firestore.", color = EtfcTextSecondary) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteRegistration(athlete.athleteId)
+                        athleteToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Delete", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { athleteToDelete = null }) {
+                    Text("Cancel", color = EtfcTextSecondary)
+                }
+            },
+            containerColor = EtfcCard
+        )
+    }
+}
+
+@Composable
+private fun AdminAthleteCrmCard(
+    athlete: RegisteredAthlete,
+    onApproveAndPromote: () -> Unit,
+    onEditStatus: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val statusColor = when {
+        athlete.status.contains("Approved", ignoreCase = true) || athlete.status.contains("Active", ignoreCase = true) -> EtfcSuccess
+        athlete.status.contains("Reject", ignoreCase = true) -> Color(0xFFEF4444)
+        else -> EtfcGold
+    }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = EtfcCard),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, EtfcBorderSubtle),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Top Row: Athlete Avatar & Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(EtfcObsidian)
+                        .border(1.5.dp, statusColor, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val photo = ImageResolver.resolve(athlete.profilePhotoUri)
+                    if (photo != null) {
+                        AsyncImage(
+                            model = photo,
+                            contentDescription = athlete.fullName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = athlete.fullName.take(2).uppercase(),
+                            fontWeight = FontWeight.Black,
+                            color = statusColor,
+                            fontSize = 18.sp
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = athlete.fullName,
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 15.sp
+                        )
+                        Surface(
+                            color = statusColor.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(4.dp),
+                            border = BorderStroke(0.5.dp, statusColor)
+                        ) {
+                            Text(
+                                text = athlete.status,
+                                color = statusColor,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    if (athlete.amharicName.isNotBlank()) {
+                        Text(text = athlete.amharicName, color = EtfcGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Text(
+                        text = "${athlete.primarySport} • ${athlete.weightClass} • ${athlete.region}",
+                        color = EtfcTextMuted,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = EtfcBorderSubtle)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Details Grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("CLUB / TEAM", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(athlete.clubAffiliation.ifBlank { "Independent" }, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                Column {
+                    Text("PRO RECORD", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text("${athlete.proWins}W - ${athlete.proLosses}L - ${athlete.proDraws}D (${athlete.proFinishes} KO)", color = EtfcSuccess, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                }
+                Column {
+                    Text("NATIONAL ID / LIC", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(athlete.licenseNo.ifBlank { athlete.nationalId.ifBlank { "N/A" } }, color = Color.White, fontSize = 11.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("COACH", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text("${athlete.coachName.ifBlank { "N/A" }} (${athlete.coachPhone.ifBlank { "N/A" }})", color = EtfcTextSecondary, fontSize = 10.sp)
+                }
+                Column {
+                    Text("LEAGUE ASSIGNMENT", color = EtfcTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(athlete.leagueAssignment, color = EtfcGold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            if (athlete.notableTitles.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "🏆 ${athlete.notableTitles}",
+                    color = EtfcTextSecondary,
+                    fontSize = 10.sp,
+                    fontStyle = FontStyle.Italic
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Action Buttons Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onApproveAndPromote,
+                    colors = ButtonDefaults.buttonColors(containerColor = EtfcGold),
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Approve & Promote", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                }
+
+                OutlinedButton(
+                    onClick = onEditStatus,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                    border = BorderStroke(1.dp, EtfcBorderSubtle),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit Status", tint = Color.White, modifier = Modifier.size(16.dp))
+                }
+
+                OutlinedButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f)),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AdminAthleteStatusDialog(
+    athlete: RegisteredAthlete,
+    onDismiss: () -> Unit,
+    onConfirm: (status: String, league: String) -> Unit
+) {
+    var statusInput by remember { mutableStateOf(athlete.status) }
+    var leagueInput by remember { mutableStateOf(athlete.leagueAssignment) }
+
+    val statusOptions = listOf(
+        "Vetting In Progress",
+        "Approved & Roster Active",
+        "Credential Verification Pending",
+        "Rejected / Incomplete Data",
+        "Suspended / Medical Hold"
+    )
+
+    val leagueOptions = listOf(
+        "ETFC Pro Main Card Roster",
+        "ETFC Showcase Contenders",
+        "Ethiopian Boxing Federation",
+        "Addis Striking League",
+        "Pending ETFC Review"
+    )
+
+    var statusExpanded by remember { mutableStateOf(false) }
+    var leagueExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Manage Athlete Registration", color = Color.White, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Update vetting status and official fight league for ${athlete.fullName}:",
+                    color = EtfcTextSecondary,
+                    fontSize = 12.sp
+                )
+
+                // Status Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = statusExpanded,
+                    onExpandedChange = { statusExpanded = !statusExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = statusInput,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Vetting Status", color = EtfcGold) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            unfocusedBorderColor = EtfcBorderSubtle,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = statusExpanded,
+                        onDismissRequest = { statusExpanded = false }
+                    ) {
+                        statusOptions.forEach { opt ->
+                            DropdownMenuItem(
+                                text = { Text(opt) },
+                                onClick = {
+                                    statusInput = opt
+                                    statusExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // League Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = leagueExpanded,
+                    onExpandedChange = { leagueExpanded = !leagueExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = leagueInput,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("League Assignment", color = EtfcGold) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = leagueExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EtfcGold,
+                            unfocusedBorderColor = EtfcBorderSubtle,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = leagueExpanded,
+                        onDismissRequest = { leagueExpanded = false }
+                    ) {
+                        leagueOptions.forEach { opt ->
+                            DropdownMenuItem(
+                                text = { Text(opt) },
+                                onClick = {
+                                    leagueInput = opt
+                                    leagueExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(statusInput, leagueInput) },
+                colors = ButtonDefaults.buttonColors(containerColor = EtfcGold)
+            ) {
+                Text("Save Changes", color = Color.Black, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancel", color = EtfcTextSecondary)
+            }
+        },
+        containerColor = EtfcCard
     )
 }
