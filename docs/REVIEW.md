@@ -68,3 +68,11 @@ No historical Git repository existed in this local directory. An existing privat
 | Payment sandbox, MySQL integration and actual stream/download tests | Not run; integrations remain prototype/disabled |
 
 Node 24 is installed locally while functions declare Node 20; CI uses the declared Node 20 runtime. A successful source check does not establish production readiness.
+
+## GitHub verification checkpoint
+
+The cleaned 178-file tree was uploaded to the existing private repository in commit `ad54181`. GitHub's source tree matched the local Git tree exactly. The old metadata, asset scratch folder, generic screenshot test and credential-bearing setup guide are absent from the current tree; private history was preserved at the owner's instruction.
+
+The first CI run passed source hygiene, PHP and Firebase functions checks, but Android setup failed while requesting the retired SDK `tools` package. Commit `00fe045` changes setup to install `platform-tools`. In [CI run 2](https://github.com/dannynewg/ETFC-stream-app/actions/runs/39662399139), source, PHP and functions checks passed again. Android reached Kotlin compilation for both flavors and was still running at this checkpoint; MIG-07 remains open until its build, unit tests and lint finish successfully.
+
+The local repository tracks `origin/main` as a shallow checkout of the migrated source. Historical credential-bearing remote commits were not downloaded into this checkout. Temporary npm dependencies, generated functions output and the migration npm cache were removed after validation.

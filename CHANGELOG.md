@@ -10,3 +10,5 @@
 - Removed embedded backend credentials and demo admin passcodes; disabled unverified payment webhooks; reduced release network logging.
 - Added restrictive Firebase rules baseline, missing rule/index files, synthetic Android Firebase config, CI, PHP security smoke tests and issue/PR templates.
 - Documented remaining identity-contract, payment, playback, migration, privacy and deployment blockers. No production deployment or payment enablement is part of this change.
+- Replaced the existing GitHub file tree while retaining private visibility and prior history, as requested by the owner.
+- Fixed CI SDK setup to avoid a retired package. Source, PHP and Firebase checks passed on GitHub; Android verification is tracked separately in docs/REVIEW.md.
